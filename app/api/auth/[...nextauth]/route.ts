@@ -1,10 +1,21 @@
-import NextAuth, { NextAuthOptions } from "next-auth";
+import NextAuth, { NextAuthOptions, User as NextAuthUser } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 import { compare } from "bcryptjs";
 import { convex } from "@/lib/convex";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
+
+// Extend NextAuth types to include our custom user fields
+interface ExtendedUser extends NextAuthUser {
+    accountStatus: string;
+    currentPeriodId?: Id<"examPeriods">;
+}
+
+// Type guard to check if user is ExtendedUser
+function isExtendedUser(user: NextAuthUser): user is ExtendedUser {
+    return "accountStatus" in user;
+}
 
 export const authOptions: NextAuthOptions = {
     providers: [
@@ -76,10 +87,10 @@ export const authOptions: NextAuthOptions = {
             return true;
         },
         async jwt({ token, user }) {
-            if (user) {
+            if (user && isExtendedUser(user)) {
                 token.id = user.id;
-                token.accountStatus = (user as { accountStatus: string }).accountStatus;
-                token.currentPeriodId = (user as { currentPeriodId?: Id<"examPeriods"> }).currentPeriodId;
+                token.accountStatus = user.accountStatus;
+                token.currentPeriodId = user.currentPeriodId;
             } else if (token.email) {
                 // Refresh user data from Convex on each request
                 const dbUser = await convex.query(api.users.getByEmail, {
@@ -95,9 +106,9 @@ export const authOptions: NextAuthOptions = {
         },
         async session({ session, token }) {
             if (session.user) {
-                (session.user as { id: string }).id = token.id as string;
-                (session.user as { accountStatus: string }).accountStatus = token.accountStatus as string;
-                (session.user as { currentPeriodId?: Id<"examPeriods"> }).currentPeriodId = token.currentPeriodId as Id<"examPeriods"> | undefined;
+                (session.user as ExtendedUser).id = token.id as string;
+                (session.user as ExtendedUser).accountStatus = token.accountStatus as string;
+                (session.user as ExtendedUser).currentPeriodId = token.currentPeriodId as Id<"examPeriods"> | undefined;
             }
             return session;
         },

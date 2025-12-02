@@ -51,8 +51,13 @@ export function FeaturesDetailed() {
             </div>
           </div>
           <div className="bg-muted rounded-2xl aspect-square relative overflow-hidden">
+            {/* Background Image */}
+            <div
+              className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-30"
+              style={{ backgroundImage: 'url(/images/Gemini_Generated_Image_owmf0rowmf0rowmf.png)' }}
+            />
             <div className="absolute inset-0 flex items-center justify-center">
-              <div className="text-center space-y-4 p-8">
+              <div className="text-center space-y-4 p-8 relative z-10">
                 <div className="text-6xl font-bold text-gradient">
                   %94
                 </div>

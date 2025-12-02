@@ -4,7 +4,7 @@ import { TestimonialsColumn } from "@/components/testimonials-columns-1"
 
 const testimonials = [
   {
-    text: "DUS Tracker sayesinde tercihlerimi çok daha bilinçli yaptım. Gerçek zamanlı veriler ve olasılık hesaplamaları gerçekten işime yaradı. İlk tercihimde yerleştim!",
+    text: "DUS360 sayesinde tercihlerimi çok daha bilinçli yaptım. Gerçek zamanlı veriler ve olasılık hesaplamaları gerçekten işime yaradı. İlk tercihimde yerleştim!",
     image: "https://api.dicebear.com/7.x/avataaars/svg?seed=AyseYilmaz",
     name: "Dr. Ayşe Yılmaz",
     role: "Ortodonti Uzmanı",
@@ -72,7 +72,7 @@ export function Testimonials() {
             Başarı Hikayeleri
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            DUS Tracker ile hedeflerine ulaşan diş hekimliği uzmanlarından
+            DUS360 ile hedeflerine ulaşan diş hekimliği uzmanlarından
           </p>
         </div>
 
@@ -92,7 +92,7 @@ export function Testimonials() {
 
         <div className="mt-12 text-center">
           <p className="text-sm text-muted-foreground">
-            5000+ öğrenci DUS Tracker'ı başarıyla kullandı
+            5000+ öğrenci DUS360'ı başarıyla kullandı
           </p>
         </div>
       </div>

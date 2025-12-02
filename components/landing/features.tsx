@@ -75,7 +75,7 @@ export function Features() {
           className="mb-16 text-center"
         >
           <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-5xl font-bold mb-4 sm:mb-6 tracking-tight">
-            Neden <span className="text-gradient">DUS Tracker</span>?
+            Neden <span className="text-gradient">DUS360</span>?
           </h2>
           <p className="text-muted-foreground text-base sm:text-lg md:text-xl max-w-2xl mx-auto">
             DUS yerleştirme sürecini güvenle yönetmek için ihtiyacın olan her şey
@@ -96,6 +96,14 @@ export function Features() {
               className={feature.className}
             >
               <Card className="h-full group relative overflow-hidden bg-white transition-all duration-300 hover:shadow-xl">
+                {/* Background Image for Akıllı Tahminler */}
+                {feature.title === "Akıllı Tahminler" && (
+                  <div
+                    className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-20"
+                    style={{ backgroundImage: 'url(/images/Gemini_Generated_Image_5xbv0k5xbv0k5xbv.png)' }}
+                  />
+                )}
+
                 {/* Gradient overlay on hover */}
                 <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-5 transition-opacity duration-300`} />
 
@@ -118,6 +126,38 @@ export function Features() {
                   <p className="text-sm md:text-base text-muted-foreground leading-relaxed">
                     {feature.description}
                   </p>
+
+                  {/* Enhanced content for Akıllı Tahminler */}
+                  {feature.title === "Akıllı Tahminler" && (
+                    <div className="mt-6 space-y-6">
+                      {/* Large accuracy display */}
+                      <div className="flex items-center gap-4">
+                        <div className="text-5xl md:text-6xl font-bold text-gradient">
+                          %94
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          <div className="font-semibold text-foreground">Doğruluk Oranı</div>
+                          <div>5000+ başarılı tahmin</div>
+                        </div>
+                      </div>
+
+                      {/* Key features list */}
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2 text-sm">
+                          <div className="h-1.5 w-1.5 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500" />
+                          <span className="text-muted-foreground">Gerçek zamanlı veri analizi</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm">
+                          <div className="h-1.5 w-1.5 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500" />
+                          <span className="text-muted-foreground">Makine öğrenmesi destekli</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm">
+                          <div className="h-1.5 w-1.5 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500" />
+                          <span className="text-muted-foreground">Önceki yılların verisi</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
 
                 {/* Shine effect on hover */}

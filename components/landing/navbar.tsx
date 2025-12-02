@@ -8,11 +8,12 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { useState } from 'react'
+import Image from 'next/image'
 
 const navItems = [
-  { name: 'Özellikler', href: '#features' },
-  { name: 'Çözümler', href: '#how-it-works' },
-  { name: 'Fiyatlandırma', href: '#pricing' },
+  { name: 'Özellikler', href: '/features' },
+  { name: 'Çözümler', href: '/solutions' },
+  { name: 'Fiyatlandırma', href: '/pricing' },
   { name: 'Hakkımızda', href: '/about' },
 ]
 
@@ -36,15 +37,6 @@ export function Navbar() {
     window.addEventListener('scroll', handleScroll)
   }
 
-  const scrollToSection = (href: string) => {
-    if (href.startsWith('#')) {
-      const element = document.querySelector(href)
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth', block: 'start' })
-        setMenuState(false)
-      }
-    }
-  }
 
   return (
     <header>
@@ -63,11 +55,15 @@ export function Navbar() {
             {/* Logo */}
             <div className="flex w-full justify-between lg:w-auto">
               <Link href="/" aria-label="home" className="flex items-center space-x-2">
-                <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                  <span className="text-white font-bold text-lg">D</span>
-                </div>
+                <Image
+                  src="/dentist_504010.png"
+                  alt="DUS360 Logo"
+                  width={36}
+                  height={36}
+                  className="rounded-lg"
+                />
                 <span className="text-lg font-semibold">
-                  DUS Tracker
+                  DUS360
                 </span>
               </Link>
 
@@ -89,12 +85,6 @@ export function Navbar() {
                   <li key={index}>
                     <Link
                       href={item.href}
-                      onClick={(e) => {
-                        if (item.href.startsWith('#')) {
-                          e.preventDefault()
-                          scrollToSection(item.href)
-                        }
-                      }}
                       className="text-muted-foreground hover:text-foreground block duration-150"
                     >
                       <span>{item.name}</span>
@@ -113,14 +103,7 @@ export function Navbar() {
                     <li key={index}>
                       <Link
                         href={item.href}
-                        onClick={(e) => {
-                          if (item.href.startsWith('#')) {
-                            e.preventDefault()
-                            scrollToSection(item.href)
-                          } else {
-                            setMenuState(false)
-                          }
-                        }}
+                        onClick={() => setMenuState(false)}
                         className="text-muted-foreground hover:text-foreground block duration-150"
                       >
                         <span>{item.name}</span>

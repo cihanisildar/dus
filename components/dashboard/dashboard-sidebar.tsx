@@ -16,6 +16,7 @@ import { signOut } from "next-auth/react";
 import { Sidebar, SidebarBody, SidebarLink, useSidebar } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
+import Image from "next/image";
 import { motion } from "framer-motion";
 
 const allMenuItems = [
@@ -131,9 +132,13 @@ export const Logo = () => {
             href="/dashboard"
             className="font-normal flex space-x-2 items-center text-sm text-black py-1 relative z-20"
         >
-            <div className="h-8 w-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                <GraduationCap className="h-5 w-5 text-white" />
-            </div>
+            <Image
+                src="/dentist_504010.png"
+                alt="DUS360 Logo"
+                width={32}
+                height={32}
+                className="rounded-lg flex-shrink-0"
+            />
             <motion.span
                 animate={{
                     display: animate ? (open ? "inline-block" : "none") : "inline-block",
@@ -141,7 +146,7 @@ export const Logo = () => {
                 }}
                 className="font-medium text-black dark:text-white whitespace-pre"
             >
-                DUS Tracker
+                DUS360
             </motion.span>
         </Link>
     );

@@ -1,16 +1,20 @@
 import { Footer as FooterUI } from "@/components/ui/footer"
 import { Twitter, Linkedin, Github, Mail } from "lucide-react"
+import Image from "next/image"
 
 export function Footer() {
     return (
         <FooterUI
             logo={
-                <svg className="h-8 w-8" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M20 5L35 12.5V27.5L20 35L5 27.5V12.5L20 5Z" fill="#2563eb" stroke="#1e40af" strokeWidth="2"/>
-                    <circle cx="20" cy="20" r="6" fill="white"/>
-                </svg>
+                <Image
+                    src="/dentist_504010.png"
+                    alt="DUS360 Logo"
+                    width={32}
+                    height={32}
+                    className="rounded-lg"
+                />
             }
-            brandName="DUS Tracker"
+            brandName="DUS360"
             socialLinks={[
                 {
                     icon: <Twitter className="h-4 w-4" />,
@@ -29,7 +33,7 @@ export function Footer() {
                 },
                 {
                     icon: <Mail className="h-4 w-4" />,
-                    href: "mailto:info@dustracker.com",
+                    href: "mailto:info@dus360.com",
                     label: "Email"
                 }
             ]}
@@ -45,7 +49,7 @@ export function Footer() {
                 { href: "#", label: "KVKK" }
             ]}
             copyright={{
-                text: `© ${new Date().getFullYear()} DUS Tracker. Tüm hakları saklıdır.`,
+                text: `© ${new Date().getFullYear()} DUS360. Tüm hakları saklıdır.`,
                 license: "Diş hekimliği uzmanlık eğitimi için tercih optimizasyonu."
             }}
         />

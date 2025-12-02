@@ -1,0 +1,113 @@
+﻿
+> dus360@0.1.0 build
+> next build
+
+node.exe : [baseline-browser-mapping] The data in 
+this module is over two months old.  To ensure acc
+urate Baseline data, please update: `npm i baselin
+e-browser-mapping@latest -D`
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program
+ Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ([bas 
+   eline-brows...ping@latest -D`:String) [], Rem  
+  oteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+   Ôû▓ Next.js 16.0.5 (Turbopack)
+   - Environments: .env.local, .env
+
+ ÔÜá The "middleware" file convention is deprecate
+d. Please use "proxy" instead. Learn more: https:/
+/nextjs.org/docs/messages/middleware-to-proxy
+   Creating an optimized production build ...
+[baseline-browser-mapping] The data in this module
+ is over two months old.  To ensure accurate Basel
+ine data, please update: `npm i baseline-browser-m
+apping@latest -D`
+ Ô£ô Compiled successfully in 4.5s
+   Running TypeScript ...
+   Collecting page data using 11 workers ...
+[baseline-browser-mapping] The data in this module
+ is over two months old.  To ensure accurate Basel
+ine data, please update: `npm i baseline-browser-m
+apping@latest -D`
+[baseline-browser-mapping] The data in this module
+ is over two months old.  To ensure accurate Basel
+ine data, please update: `npm i baseline-browser-m
+apping@latest -D`
+[baseline-browser-mapping] The data in this module
+ is over two months old.  To ensure accurate Basel
+ine data, please update: `npm i baseline-browser-m
+apping@latest -D`
+[baseline-browser-mapping] The data in this module
+ is over two months old.  To ensure accurate Basel
+ine data, please update: `npm i baseline-browser-m
+apping@latest -D`
+[baseline-browser-mapping] The data in this module
+ is over two months old.  To ensure accurate Basel
+ine data, please update: `npm i baseline-browser-m
+apping@latest -D`
+[baseline-browser-mapping] The data in this module
+ is over two months old.  To ensure accurate Basel
+ine data, please update: `npm i baseline-browser-m
+apping@latest -D`
+[baseline-browser-mapping] The data in this module
+ is over two months old.  To ensure accurate Basel
+ine data, please update: `npm i baseline-browser-m
+apping@latest -D`
+[baseline-browser-mapping] The data in this module
+ is over two months old.  To ensure accurate Basel
+ine data, please update: `npm i baseline-browser-m
+apping@latest -D`
+[baseline-browser-mapping] The data in this module
+ is over two months old.  To ensure accurate Basel
+ine data, please update: `npm i baseline-browser-m
+apping@latest -D`
+[baseline-browser-mapping] The data in this module
+ is over two months old.  To ensure accurate Basel
+ine data, please update: `npm i baseline-browser-m
+apping@latest -D`
+[baseline-browser-mapping] The data in this module
+ is over two months old.  To ensure accurate Basel
+ine data, please update: `npm i baseline-browser-m
+apping@latest -D`
+   Generating static pages using 11 workers (0/14) ...
+[baseline-browser-mapping] The data in this module
+ is over two months old.  To ensure accurate Basel
+ine data, please update: `npm i baseline-browser-m
+apping@latest -D`
+   Generating static pages using 11 workers (3/14) 
+ ÔÜá metadataBase property in metadata export is n
+ot set for resolving social open graph or twitter 
+images, using "http://localhost:3000". See https:/
+/nextjs.org/docs/app/api-reference/functions/gener
+ate-metadata#metadatabase
+   Generating static pages using 11 workers (6/14) 
+   Generating static pages using 11 workers (10/14) 
+ Ô£ô Generating static pages using 11 workers (14/14) in 1186.9ms
+   Finalizing page optimization ...
+
+Route (app)
+Ôöî Ôùï /
+Ôö£ Ôùï /_not-found
+Ôö£ ãÆ /api/auth/[...nextauth]
+Ôö£ ãÆ /api/auth/register
+Ôö£ ãÆ /api/auth/verify-osym
+Ôö£ ãÆ /api/payment/callback
+Ôö£ ãÆ /api/payment/initiate
+Ôö£ ãÆ /dashboard
+Ôö£ ãÆ /dashboard/profile
+Ôö£ ãÆ /dashboard/verify
+Ôö£ Ôùï /login
+Ôö£ Ôùï /payment
+Ôöö Ôùï /register
+
+
+ãÆ Proxy (Middleware)
+
+Ôùï  (Static)   prerendered as static content
+ãÆ  (Dynamic)  server-rendered on demand
+

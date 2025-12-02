@@ -75,7 +75,7 @@ export function Sidebar() {
             <div className="flex flex-col h-full">
                 {/* Logo */}
                 <div className="p-6 border-b">
-                    <h1 className="text-xl font-bold">DUS Tracker</h1>
+                    <h1 className="text-xl font-bold">DUS360</h1>
                     <p className="text-xs text-muted-foreground mt-1">
                         {accountStatus === "registered" && "Kayıt Tamamlandı"}
                         {accountStatus === "verified" && "ÖSYM Doğrulandı"}
@@ -94,8 +94,8 @@ export function Sidebar() {
                                 key={item.href}
                                 href={item.href}
                                 className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${isActive
-                                        ? "bg-primary text-primary-foreground"
-                                        : "hover:bg-accent hover:text-accent-foreground"
+                                    ? "bg-primary text-primary-foreground"
+                                    : "hover:bg-accent hover:text-accent-foreground"
                                     }`}
                             >
                                 <Icon className="w-5 h-5" />

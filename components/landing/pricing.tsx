@@ -7,8 +7,8 @@ export function Pricing() {
     {
       title: "Temel Özellikler",
       items: [
-        "10 Tercih Hakkı",
-        "3 Uzmanlık Alanı",
+        "30 Tercih Hakkı",
+        "8 Uzmanlık Alanı",
         "Gerçek Zamanlı Analitik",
         "Olasılık Hesaplamaları",
         "Rekabet Takibi",
@@ -55,7 +55,7 @@ export function Pricing() {
         </div>
 
         <PricingCard
-          title="DUS Tracker Pro"
+          title="DUS360 Pro"
           description="DUS 2025 yerleştirme süreci için ihtiyacınız olan her şey"
           price={299}
           originalPrice={499}

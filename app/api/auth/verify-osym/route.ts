@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "../[...nextauth]/route";
 import { convex } from "@/lib/convex";
 import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
 
 // Mock ÖSYM verification - Replace with actual ÖSYM API integration
 const verifyOSYMCode = async (resultCode: string) => {
@@ -68,7 +69,7 @@ export async function POST(req: NextRequest) {
 
         // Save verification
         await convex.mutation(api.verifications.create, {
-            userId,
+            userId: userId as Id<"users">,
             periodId: activePeriod._id,
             osymResultCode,
             dusScore: verification.dusScore,
@@ -76,7 +77,7 @@ export async function POST(req: NextRequest) {
         });
 
         // Get current user to add to verified periods array
-        const user = await convex.query(api.users.getById, { id: userId });
+        const user = await convex.query(api.users.getById, { id: userId as Id<"users"> });
 
         if (!user) {
             return NextResponse.json(
@@ -87,7 +88,7 @@ export async function POST(req: NextRequest) {
 
         // Update user status to "verified" and add period to verified periods
         await convex.mutation(api.users.update, {
-            id: userId,
+            id: userId as Id<"users">,
             accountStatus: "verified",
             currentPeriodId: activePeriod._id,
             verifiedPeriods: [...user.verifiedPeriods, activePeriod._id],

@@ -34,7 +34,7 @@ export function Hero() {
         <div className="absolute inset-0">
           <Image
             src="/images/Gemini_Generated_Image_jhv79pjhv79pjhv7.png"
-            alt="DUS Tracker Background"
+            alt="DUS360 Background"
             fill
             className="object-cover"
             priority
@@ -158,7 +158,7 @@ export function Hero() {
               <div className="relative w-full aspect-[16/10] bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl">
                 <Image
                   src="/images/image.png"
-                  alt="DUS Tracker Dashboard Preview"
+                  alt="DUS360 Dashboard Preview"
                   fill
                   className="object-contain rounded-xl"
                   priority

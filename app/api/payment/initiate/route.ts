@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "../../auth/[...nextauth]/route";
 import { convex } from "@/lib/convex";
 import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
 
 // Mock iyzico integration - Replace with actual iyzico SDK
 const initializeIyzicoPayment = async (paymentData: {
@@ -35,7 +36,7 @@ export async function POST(req: NextRequest) {
         }
 
         const userId = (session.user as { id: string }).id;
-        const user = await convex.query(api.users.getById, { id: userId });
+        const user = await convex.query(api.users.getById, { id: userId as Id<"users"> });
 
         if (!user) {
             return NextResponse.json(

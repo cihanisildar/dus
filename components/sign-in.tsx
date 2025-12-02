@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
+import Link from 'next/link';
+import Image from 'next/image';
 
 // --- HELPER COMPONENTS (ICONS) ---
 
@@ -31,6 +33,8 @@ interface SignInPageProps {
   onGoogleSignIn?: () => void;
   onResetPassword?: () => void;
   onCreateAccount?: () => void;
+  error?: string;
+  isLoading?: boolean;
   // Text customization
   labels?: {
     email?: string;
@@ -77,6 +81,8 @@ export const SignInPage: React.FC<SignInPageProps> = ({
   onGoogleSignIn,
   onResetPassword,
   onCreateAccount,
+  error,
+  isLoading = false,
   labels = {},
 }) => {
   const {
@@ -97,56 +103,81 @@ export const SignInPage: React.FC<SignInPageProps> = ({
   return (
     <div className="h-[100dvh] flex flex-col md:flex-row font-geist w-[100dvw]">
       {/* Left column: sign-in form */}
-      <section className="flex-1 flex items-center justify-center p-8">
-        <div className="w-full max-w-md">
-          <div className="flex flex-col gap-6">
-            <h1 className="animate-element animate-delay-100 text-4xl md:text-5xl font-semibold leading-tight">{title}</h1>
-            <p className="animate-element animate-delay-200 text-muted-foreground">{description}</p>
+      <section className="flex-1 flex items-center justify-center p-4 md:p-8 overflow-y-auto">
+        <div className="w-full max-w-md py-4">
+          <div className="flex flex-col gap-3">
+            {/* Logo and App Name Header - Centered */}
+            <Link href="/" className="animate-element animate-delay-50 flex flex-col items-center gap-2 group mb-1">
+              <div className="relative w-12 h-12 transition-transform group-hover:scale-110">
+                <Image
+                  src="/dentist_504010.png"
+                  alt="DUS360 Logo"
+                  width={48}
+                  height={48}
+                  className="object-contain"
+                />
+              </div>
+              <div className="flex flex-col items-center text-center">
+                <h2 className="text-lg font-bold text-foreground group-hover:text-violet-400 transition-colors">
+                  DUS360
+                </h2>
+                <p className="text-xs text-muted-foreground">Tercih Analiz Sistemi</p>
+              </div>
+            </Link>
 
-            <form className="space-y-5" onSubmit={onSignIn}>
+            <h1 className="animate-element animate-delay-100 text-3xl md:text-4xl font-semibold leading-tight text-center">{title}</h1>
+            <p className="animate-element animate-delay-200 text-sm text-muted-foreground text-center">{description}</p>
+
+            <form className="space-y-3" onSubmit={onSignIn}>
               <div className="animate-element animate-delay-300">
-                <label className="text-sm font-medium text-muted-foreground">{email}</label>
+                <label className="text-xs font-medium text-muted-foreground">{email}</label>
                 <GlassInputWrapper>
-                  <input name="email" type="email" placeholder={emailPlaceholder} className="w-full bg-transparent text-sm p-4 rounded-2xl focus:outline-none" />
+                  <input name="email" type="email" placeholder={emailPlaceholder} className="w-full bg-transparent text-sm p-3 rounded-2xl focus:outline-none" />
                 </GlassInputWrapper>
               </div>
 
               <div className="animate-element animate-delay-400">
-                <label className="text-sm font-medium text-muted-foreground">{password}</label>
+                <label className="text-xs font-medium text-muted-foreground">{password}</label>
                 <GlassInputWrapper>
                   <div className="relative">
-                    <input name="password" type={showPassword ? 'text' : 'password'} placeholder={passwordPlaceholder} className="w-full bg-transparent text-sm p-4 pr-12 rounded-2xl focus:outline-none" />
+                    <input name="password" type={showPassword ? 'text' : 'password'} placeholder={passwordPlaceholder} className="w-full bg-transparent text-sm p-3 pr-12 rounded-2xl focus:outline-none" />
                     <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-3 flex items-center">
-                      {showPassword ? <EyeOff className="w-5 h-5 text-muted-foreground hover:text-foreground transition-colors" /> : <Eye className="w-5 h-5 text-muted-foreground hover:text-foreground transition-colors" />}
+                      {showPassword ? <EyeOff className="w-4 h-4 text-muted-foreground hover:text-foreground transition-colors" /> : <Eye className="w-4 h-4 text-muted-foreground hover:text-foreground transition-colors" />}
                     </button>
                   </div>
                 </GlassInputWrapper>
               </div>
 
-              <div className="animate-element animate-delay-500 flex items-center justify-between text-sm">
-                <label className="flex items-center gap-3 cursor-pointer">
+              <div className="animate-element animate-delay-500 flex items-center justify-between text-xs">
+                <label className="flex items-center gap-2 cursor-pointer">
                   <input type="checkbox" name="rememberMe" className="custom-checkbox" />
                   <span className="text-foreground/90">{rememberMe}</span>
                 </label>
                 {onResetPassword && <a href="#" onClick={(e) => { e.preventDefault(); onResetPassword(); }} className="hover:underline text-violet-400 transition-colors">{resetPassword}</a>}
               </div>
 
-              <button type="submit" className="animate-element animate-delay-600 w-full rounded-2xl bg-primary py-4 font-medium text-primary-foreground hover:bg-primary/90 transition-colors">
+              {error && (
+                <div className="animate-element animate-delay-550 rounded-2xl bg-red-500/10 border border-red-500/20 px-4 py-3">
+                  <p className="text-sm text-red-500">{error}</p>
+                </div>
+              )}
+
+              <button type="submit" disabled={isLoading} className="animate-element animate-delay-600 w-full rounded-2xl bg-primary py-3 font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                 {submitButton}
               </button>
             </form>
 
-            <div className="animate-element animate-delay-700 relative flex items-center justify-center">
+            <div className="animate-element animate-delay-700 relative flex items-center justify-center my-1">
               <span className="w-full border-t border-border"></span>
-              <span className="px-4 text-sm text-muted-foreground bg-background absolute">{orContinueWith}</span>
+              <span className="px-4 text-xs text-muted-foreground bg-background absolute">{orContinueWith}</span>
             </div>
 
-            <button onClick={onGoogleSignIn} className="animate-element animate-delay-800 w-full flex items-center justify-center gap-3 border border-border rounded-2xl py-4 hover:bg-secondary transition-colors">
+            <button onClick={onGoogleSignIn} className="animate-element animate-delay-800 w-full flex items-center justify-center gap-3 border border-border rounded-2xl py-3 hover:bg-secondary transition-colors text-sm">
               <GoogleIcon />
               {googleButton}
             </button>
 
-            <p className="animate-element animate-delay-900 text-center text-sm text-muted-foreground">
+            <p className="animate-element animate-delay-900 text-center text-xs text-muted-foreground">
               {newUserText} <a href="#" onClick={(e) => { e.preventDefault(); onCreateAccount?.(); }} className="text-violet-400 hover:underline transition-colors">{createAccountLink}</a>
             </p>
           </div>
