@@ -1,11 +1,28 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
+import { db } from "@/lib/db";
+import { users } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 import { User, Mail, Shield } from "lucide-react";
 
 export default async function ProfilePage() {
-  const session = await getServerSession(authOptions);
-  const user = session?.user;
-  const accountStatus = (user as { accountStatus: string })?.accountStatus;
+  const supabase = await createClient();
+  const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+
+  if (authError || !authUser) {
+    redirect("/login");
+  }
+
+  // Fetch user data from custom users table
+  const user = await db.query.users.findFirst({
+    where: eq(users.id, authUser.id)
+  });
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const accountStatus = user.accountStatus;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -23,8 +40,8 @@ export default async function ProfilePage() {
                 <User className="w-8 h-8 text-white" />
               </div>
               <div>
-                <h2 className="text-2xl font-semibold text-white">{user?.name}</h2>
-                <p className="text-blue-100">{user?.email}</p>
+                <h2 className="text-2xl font-semibold text-white">{user.name}</h2>
+                <p className="text-blue-100">{user.email}</p>
               </div>
             </div>
           </div>
@@ -37,7 +54,7 @@ export default async function ProfilePage() {
                   <User className="w-4 h-4 text-gray-400" />
                   <label className="text-sm font-medium text-gray-500">Ad Soyad</label>
                 </div>
-                <p className="text-lg text-gray-900">{user?.name}</p>
+                <p className="text-lg text-gray-900">{user.name}</p>
               </div>
 
               <div>
@@ -45,7 +62,7 @@ export default async function ProfilePage() {
                   <Mail className="w-4 h-4 text-gray-400" />
                   <label className="text-sm font-medium text-gray-500">E-posta</label>
                 </div>
-                <p className="text-lg text-gray-900">{user?.email}</p>
+                <p className="text-lg text-gray-900">{user.email}</p>
               </div>
 
               <div className="md:col-span-2">

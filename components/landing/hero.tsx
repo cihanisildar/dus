@@ -113,23 +113,22 @@ export function Hero() {
               }}
               className="mt-12 flex flex-col items-center justify-center gap-2 md:flex-row"
             >
-              <div className="bg-foreground/10 rounded-[14px] border border-white/10 p-0.5">
-                <Button asChild size="lg" className="rounded-xl px-5 text-base">
-                  <Link href="/register">
-                    <span className="text-nowrap">Hemen Başla</span>
-                  </Link>
-                </Button>
-              </div>
+              <Button asChild size="lg" className="rounded-xl px-5 text-base">
+                <Link href="/register">
+                  <span className="text-nowrap">Hemen Başla</span>
+                </Link>
+              </Button>
               <Button
                 asChild
                 size="lg"
-                variant="ghost"
-                className="h-10.5 rounded-xl px-5"
+                variant="outline"
+                className="rounded-xl px-5 text-base hover:bg-primary hover:text-primary-foreground transition-colors"
               >
-                <Link href="#how-it-works">
-                  <span className="text-nowrap">Nasıl Çalışır?</span>
+                <Link href="/demo">
+                  <span className="text-nowrap">Demo'yu İncele</span>
                 </Link>
               </Button>
+
             </AnimatedGroup>
           </div>
         </div>

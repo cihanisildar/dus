@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "../../auth/[...nextauth]/route";
-import { convex } from "@/lib/convex";
-import { api } from "@/convex/_generated/api";
-import type { Id } from "@/convex/_generated/dataModel";
+import { createClient } from "@/lib/supabase/server";
+import { db } from "@/lib/db";
+import { users, examPeriods, payments } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
+import { iyzico, LOCALE, CURRENCY } from "@/lib/iyzico/config";
 
-// Mock iyzico integration - Replace with actual iyzico SDK
 const initializeIyzicoPayment = async (paymentData: {
     amount: number;
     userId: string;
@@ -14,29 +13,93 @@ const initializeIyzicoPayment = async (paymentData: {
     userName: string;
     userPhone: string;
 }) => {
-    // TODO: Implement with actual iyzico SDK
-    // For now, return mock data
-    return {
-        status: "success",
-        paymentPageUrl: "/payment/checkout", // Mock checkout page
-        token: "mock-payment-token-" + Date.now(),
-        conversationId: "conv-" + Date.now(),
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const conversationId = `dus360-${paymentData.userId}-${Date.now()}`;
+
+    const request = {
+        locale: LOCALE,
+        conversationId,
+        price: paymentData.amount.toFixed(2),
+        paidPrice: paymentData.amount.toFixed(2),
+        currency: CURRENCY,
+        basketId: `basket-${Date.now()}`,
+        paymentGroup: 'PRODUCT',
+        callbackUrl: `${appUrl}/api/payment/callback`,
+        enabledInstallments: [1], // Only single payment
+        buyer: {
+            id: paymentData.userId,
+            name: paymentData.userName.split(' ')[0] || 'Ad',
+            surname: paymentData.userName.split(' ').slice(1).join(' ') || 'Soyad',
+            gsmNumber: paymentData.userPhone,
+            email: paymentData.userEmail,
+            identityNumber: '11111111111', // For testing - in production, collect from user
+            registrationAddress: 'Adres bilgisi', // For testing
+            ip: '85.34.78.112', // For testing - in production, get real IP
+            city: 'Istanbul',
+            country: 'Turkey',
+            zipCode: '34000',
+        },
+        shippingAddress: {
+            contactName: paymentData.userName,
+            city: 'Istanbul',
+            country: 'Turkey',
+            address: 'Adres bilgisi',
+            zipCode: '34000',
+        },
+        billingAddress: {
+            contactName: paymentData.userName,
+            city: 'Istanbul',
+            country: 'Turkey',
+            address: 'Adres bilgisi',
+            zipCode: '34000',
+        },
+        basketItems: [
+            {
+                id: 'dus360-premium',
+                name: 'DUS360 Premium Erişim',
+                category1: 'Eğitim',
+                category2: 'DUS Yerleştirme',
+                itemType: 'VIRTUAL',
+                price: paymentData.amount.toFixed(2),
+            },
+        ],
     };
+
+    try {
+        const result = await iyzico.checkoutFormInitialize.create(request);
+
+        if (result.status === 'success') {
+            return {
+                status: 'success',
+                paymentPageUrl: result.paymentPageUrl,
+                token: result.token,
+                conversationId: result.conversationId,
+            };
+        } else {
+            throw new Error(result.errorMessage || 'Payment initialization failed');
+        }
+    } catch (error) {
+        console.error('iyzico error:', error);
+        throw error;
+    }
 };
 
 export async function POST(req: NextRequest) {
     try {
-        const session = await getServerSession(authOptions);
+        const supabase = await createClient();
+        const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
 
-        if (!session?.user) {
+        if (authError || !authUser) {
             return NextResponse.json(
                 { error: "Oturum bulunamadı. Lütfen giriş yapın." },
                 { status: 401 }
             );
         }
 
-        const userId = (session.user as { id: string }).id;
-        const user = await convex.query(api.users.getById, { id: userId as Id<"users"> });
+        const userId = authUser.id;
+        const user = await db.query.users.findFirst({
+            where: eq(users.id, userId),
+        });
 
         if (!user) {
             return NextResponse.json(
@@ -54,7 +117,9 @@ export async function POST(req: NextRequest) {
         }
 
         // Get active period
-        const activePeriod = await convex.query(api.periods.getActive, {});
+        const activePeriod = await db.query.examPeriods.findFirst({
+            where: eq(examPeriods.isActive, true),
+        });
 
         if (!activePeriod) {
             return NextResponse.json(
@@ -70,8 +135,8 @@ export async function POST(req: NextRequest) {
         // Initialize payment with iyzico
         const iyzicoResponse = await initializeIyzicoPayment({
             amount: 299.99, // Price in TRY
-            userId: user._id,
-            periodId: activePeriod._id,
+            userId: user.id,
+            periodId: activePeriod.id,
             userEmail: user.email,
             userName: user.name,
             userPhone: user.phone,
@@ -84,11 +149,11 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // Create payment record
-        await convex.mutation(api.payments.create, {
-            userId: user._id,
-            periodId: activePeriod._id,
-            amount: 299.99,
+        // Create payment record (amount stored as cents)
+        await db.insert(payments).values({
+            userId: user.id,
+            periodId: activePeriod.id,
+            amount: 29999, // 299.99 TRY as cents
             currency: "TRY",
             status: "pending",
             provider: "iyzico",

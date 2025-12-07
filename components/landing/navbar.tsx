@@ -6,8 +6,8 @@ import { cn } from '@/lib/utils'
 import { Menu, X } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useSession } from 'next-auth/react'
-import { useState } from 'react'
+import { useUser } from '@/hooks/useUser'
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 
 const navItems = [
@@ -19,7 +19,7 @@ const navItems = [
 
 export function Navbar() {
   const pathname = usePathname()
-  const { data: session, status } = useSession()
+  const { user, loading } = useUser()
   const [menuState, setMenuState] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
 
@@ -33,9 +33,12 @@ export function Navbar() {
   }
 
   // Attach scroll listener
-  if (typeof window !== 'undefined') {
-    window.addEventListener('scroll', handleScroll)
-  }
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.addEventListener('scroll', handleScroll)
+      return () => window.removeEventListener('scroll', handleScroll)
+    }
+  }, [])
 
 
   return (
@@ -115,13 +118,13 @@ export function Navbar() {
 
               {/* CTA Buttons - Show Dashboard if logged in */}
               <div className="flex w-full flex-col space-y-3 sm:flex-row sm:gap-3 sm:space-y-0 md:w-fit">
-                {status === 'loading' ? (
+                {loading ? (
                   // Loading session - show skeleton
                   <div className="flex gap-3">
                     <Skeleton className="h-9 w-24" />
                     <Skeleton className="h-9 w-24" />
                   </div>
-                ) : session ? (
+                ) : user ? (
                   // Logged in - show Dashboard button
                   <Button asChild size="sm">
                     <Link href="/dashboard">

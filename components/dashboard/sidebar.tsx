@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useSession } from "next-auth/react";
+import { usePathname, useRouter } from "next/navigation";
+import { useUser } from "@/hooks/useUser";
+import { createClient } from "@/lib/supabase/client";
 import {
     LayoutDashboard,
     CheckCircle,
@@ -12,7 +13,6 @@ import {
     User,
     LogOut
 } from "lucide-react";
-import { signOut } from "next-auth/react";
 
 const allMenuItems = [
     {
@@ -31,7 +31,7 @@ const allMenuItems = [
         href: "/dashboard/payment",
         label: "Ödeme",
         icon: CreditCard,
-        requiredStatus: "verified" // Shows only after verification
+        requiredStatus: "registered" // Shows for all registered users
     },
     {
         href: "/dashboard/preferences",
@@ -57,8 +57,11 @@ const statusOrder = ["registered", "verified", "active", "expired", "suspended"]
 
 export function Sidebar() {
     const pathname = usePathname();
-    const { data: session } = useSession();
-    const accountStatus = (session?.user as { accountStatus: string })?.accountStatus || "registered";
+    const router = useRouter();
+    const { user } = useUser();
+    const supabase = createClient();
+    // TODO: Fetch user's account status from custom users table
+    const accountStatus = "registered" as string; // Default, should be fetched from DB
 
     // Filter menu items based on account status
     const visibleMenuItems = allMenuItems.filter((item) => {
@@ -77,9 +80,9 @@ export function Sidebar() {
                 <div className="p-6 border-b">
                     <h1 className="text-xl font-bold">DUS360</h1>
                     <p className="text-xs text-muted-foreground mt-1">
-                        {accountStatus === "registered" && "Kayıt Tamamlandı"}
-                        {accountStatus === "verified" && "ÖSYM Doğrulandı"}
-                        {accountStatus === "active" && "Aktif Üyelik"}
+                        {accountStatus === "registered" ? "Kayıt Tamamlandı" : null}
+                        {accountStatus === "verified" ? "ÖSYM Doğrulandı" : null}
+                        {accountStatus === "active" ? "Aktif Üyelik" : null}
                     </p>
                 </div>
 
@@ -108,7 +111,11 @@ export function Sidebar() {
                 {/* Logout */}
                 <div className="p-4 border-t">
                     <button
-                        onClick={() => signOut({ callbackUrl: "/login" })}
+                        onClick={async () => {
+                            await supabase.auth.signOut();
+                            router.push("/login");
+                            router.refresh();
+                        }}
                         className="flex items-center gap-3 px-3 py-2 w-full rounded-lg hover:bg-accent hover:text-accent-foreground transition-colors"
                     >
                         <LogOut className="w-5 h-5" />

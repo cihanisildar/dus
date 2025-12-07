@@ -2,22 +2,23 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { signIn, useSession } from "next-auth/react";
+import { createClient } from "@/lib/supabase/client";
 import { SignInPage } from "@/components/sign-in";
+import { useUser } from "@/hooks/useUser";
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { data: session, status } = useSession();
+  const { user, loading } = useUser();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const supabase = createClient();
 
-  // Redirect to dashboard if already authenticated
+  // Redirect if already authenticated - use useEffect to avoid redirect loops
   useEffect(() => {
-    if (status === "authenticated") {
+    if (!loading && user) {
       router.push("/dashboard");
-      router.refresh();
     }
-  }, [status, router]);
+  }, [user, loading, router]);
 
   const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -63,7 +64,15 @@ export default function RegisterPage() {
       description="DUS yolculuğunuza bugün başlayın"
       heroImageSrc="/images/Gemini_Generated_Image_15zbmx15zbmx15zb.png"
       onSignIn={handleRegister}
-      onGoogleSignIn={() => signIn("google", { callbackUrl: "/dashboard" })}
+      onGoogleSignIn={async () => {
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: "google",
+          options: {
+            redirectTo: `${window.location.origin}/api/auth/callback`,
+          },
+        });
+        if (error) setError("Google ile kayıt başarısız");
+      }}
       onResetPassword={undefined}
       onCreateAccount={() => router.push("/login")}
       error={error}

@@ -1,0 +1,18 @@
+# ÖSYM Test Result Codes
+# Copy and paste these codes when testing the verification page
+#
+# FIRST TIME SETUP: Run this command to create an active exam period:
+#   npm run db:seed-period
+#
+# Then use any of these test codes below:
+
+# High Performer (Score: 74.52, Rank: 234)
+20250315-12345
+
+# Top Performer (Score: 82.15, Rank: 89)
+20250315-67890
+
+# Average Performer (Score: 65.30, Rank: 1,250)
+20250315-11111
+
+# Any code matching format YYYYMMDD-XXXXX will generate random realistic data

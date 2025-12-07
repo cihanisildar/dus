@@ -2,23 +2,24 @@
 
 import { useState, Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { signIn, useSession } from "next-auth/react";
+import { createClient } from "@/lib/supabase/client";
 import { SignInPage } from "@/components/sign-in";
+import { useUser } from "@/hooks/useUser";
 
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { data: session, status } = useSession();
+  const { user, loading } = useUser();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const supabase = createClient();
 
-  // Redirect to dashboard if already authenticated
+  // Redirect if already authenticated - use useEffect to avoid redirect loops
   useEffect(() => {
-    if (status === "authenticated") {
+    if (!loading && user) {
       router.push("/dashboard");
-      router.refresh();
     }
-  }, [status, router]);
+  }, [user, loading, router]);
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -30,24 +31,46 @@ function LoginContent() {
     const password = formData.get("password") as string;
 
     try {
-      const result = await signIn("credentials", {
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
-        redirect: false,
       });
 
-      if (result?.error) {
-        setError(result.error);
+      if (signInError) {
+        setError(signInError.message === "Invalid login credentials"
+          ? "Geçersiz e-posta veya şifre"
+          : signInError.message);
         return;
       }
 
-      // Success - Redirect based on account status will be handled by dashboard
-      router.push("/dashboard");
-      router.refresh();
+      if (!data.user) {
+        setError("Giriş başarısız");
+        return;
+      }
+
+      // Success - let useEffect handle redirect after auth state updates
+      // Not calling router.push() here - useEffect will redirect when user state is set
     } catch (err) {
       setError("Giriş yapılırken bir hata oluştu");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/api/auth/callback`,
+        },
+      });
+
+      if (error) {
+        setError("Google ile giriş başarısız");
+      }
+    } catch (err) {
+      setError("Google ile giriş yapılırken bir hata oluştu");
     }
   };
 
@@ -70,7 +93,7 @@ function LoginContent() {
         description="Hesabınıza giriş yapın ve DUS yolculuğunuza devam edin"
         heroImageSrc="/images/Gemini_Generated_Image_15zbmx15zbmx15zb.png"
         onSignIn={handleLogin}
-        onGoogleSignIn={() => signIn("google", { callbackUrl: "/dashboard" })}
+        onGoogleSignIn={handleGoogleSignIn}
         onResetPassword={() => router.push("/forgot-password")}
         onCreateAccount={() => router.push("/register")}
         error={error}

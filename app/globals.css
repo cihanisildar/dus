@@ -71,6 +71,16 @@
   }
 }
 
+/* Shimmer Animation for Skeleton Loading */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
 body {
   @apply bg-white text-foreground antialiased selection:bg-blue-100;
 }

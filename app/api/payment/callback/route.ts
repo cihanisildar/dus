@@ -1,91 +1,71 @@
 import { NextRequest, NextResponse } from "next/server";
-import { convex } from "@/lib/convex";
-import { api } from "@/convex/_generated/api";
+import { completePayment } from "@/lib/db/transactions";
+import { iyzico } from "@/lib/iyzico/config";
 
-// Mock iyzico callback verification
-const verifyIyzicoCallback = async (token: string) => {
-    // TODO: Implement with actual iyzico SDK
-    // Verify the payment with iyzico
-    return {
-        status: "success",
-        paymentId: "iyz-" + Date.now(),
-        paidAt: Date.now(),
-    };
+const verifyIyzicoCallback = async (token: string): Promise<{
+    status: string;
+    paymentId: string;
+    paidAt: number;
+}> => {
+    try {
+        const request = { token, locale: 'tr' };
+        const result = await iyzico.checkoutForm.retrieve(request);
+
+        if (result.status === 'success' && result.paymentStatus === 'SUCCESS') {
+            return {
+                status: 'success',
+                paymentId: result.paymentId,
+                paidAt: Date.now(),
+            };
+        } else {
+            throw new Error(result.errorMessage || 'Payment verification failed');
+        }
+    } catch (error) {
+        console.error('iyzico verification error:', error);
+        throw error;
+    }
 };
 
 export async function POST(req: NextRequest) {
     try {
-        const body = await req.json();
-        const { token } = body;
+        // iyzico sends callback as form data, not JSON
+        const formData = await req.formData();
+        const token = formData.get('token') as string;
 
         if (!token) {
-            return NextResponse.json(
-                { error: "Payment token gereklidir" },
-                { status: 400 }
-            );
-        }
-
-        // Get payment record
-        const payment = await convex.query(api.payments.getByToken, { token });
-
-        if (!payment) {
-            return NextResponse.json(
-                { error: "Ödeme kaydı bulunamadı" },
-                { status: 404 }
-            );
+            return NextResponse.redirect(new URL('/dashboard/payment?error=token_missing', req.url));
         }
 
         // Verify payment with iyzico
-        const verification = await verifyIyzicoCallback(token);
+        let verification;
+        try {
+            verification = await verifyIyzicoCallback(token);
+        } catch (error) {
+            console.error('Payment verification failed:', error);
+            return NextResponse.redirect(new URL('/dashboard/payment?error=verification_failed', req.url));
+        }
 
         if (verification.status !== "success") {
-            // Update payment status to failed
-            await convex.mutation(api.payments.updateStatus, {
-                token,
-                status: "failed",
+            return NextResponse.redirect(new URL('/dashboard/payment?error=verification_failed', req.url));
+        }
+
+        // Complete payment using transaction (atomic operation)
+        // This updates payment status AND user status + paid periods
+        try {
+            await completePayment({
+                paymentToken: token,
+                transactionId: verification.paymentId,
+                paidAt: new Date(verification.paidAt),
             });
-
-            return NextResponse.json(
-                { error: "Ödeme doğrulanamadı" },
-                { status: 400 }
-            );
+        } catch (error) {
+            console.error("Payment completion error:", error);
+            return NextResponse.redirect(new URL('/dashboard/payment?error=completion_failed', req.url));
         }
 
-        // Update payment status to completed
-        await convex.mutation(api.payments.updateStatus, {
-            token,
-            status: "completed",
-            transactionId: verification.paymentId,
-            paidAt: verification.paidAt,
-        });
-
-        // Get user to update paid periods
-        const user = await convex.query(api.users.getById, { id: payment.userId });
-
-        if (!user) {
-            return NextResponse.json(
-                { error: "Kullanıcı bulunamadı" },
-                { status: 404 }
-            );
-        }
-
-        // Update user status to "active" and add to paid periods
-        await convex.mutation(api.users.update, {
-            id: payment.userId,
-            accountStatus: "active",
-            paidPeriods: [...user.paidPeriods, payment.periodId],
-        });
-
-        return NextResponse.json({
-            success: true,
-            message: "Ödeme başarıyla tamamlandı!",
-            redirectUrl: "/dashboard",
-        });
+        // Redirect to dashboard with success message
+        return NextResponse.redirect(new URL('/dashboard?payment=success', req.url));
     } catch (error) {
         console.error("Payment callback error:", error);
-        return NextResponse.json(
-            { error: "Ödeme doğrulama sırasında bir hata oluştu" },
-            { status: 500 }
-        );
+        return NextResponse.redirect(new URL('/dashboard/payment?error=unknown', req.url));
     }
 }

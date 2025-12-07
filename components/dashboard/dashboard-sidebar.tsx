@@ -1,7 +1,8 @@
 "use client";
 
-import { usePathname } from "next/navigation";
-import { useSession } from "next-auth/react";
+import { usePathname, useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
+import type { User as SupabaseUser } from "@supabase/supabase-js";
 import {
     LayoutDashboard,
     CheckCircle,
@@ -10,18 +11,18 @@ import {
     BarChart3,
     User,
     LogOut,
-    GraduationCap
+    GraduationCap,
+    Settings
 } from "lucide-react";
-import { signOut } from "next-auth/react";
 import { Sidebar, SidebarBody, SidebarLink, useSidebar } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
 
-const allMenuItems = [
+const getMenuItems = (basePath: string = "/dashboard") => [
     {
-        href: "/dashboard",
+        href: `${basePath}`,
         label: "Ana Sayfa",
         icon: (
             <LayoutDashboard className="text-neutral-700 dark:text-neutral-200 h-5 w-5 flex-shrink-0" />
@@ -29,7 +30,7 @@ const allMenuItems = [
         requiredStatus: null
     },
     {
-        href: "/dashboard/verify",
+        href: `${basePath}/verify`,
         label: "ÖSYM Doğrulama",
         icon: (
             <CheckCircle className="text-neutral-700 dark:text-neutral-200 h-5 w-5 flex-shrink-0" />
@@ -37,7 +38,7 @@ const allMenuItems = [
         requiredStatus: "registered"
     },
     {
-        href: "/dashboard/payment",
+        href: `${basePath}/payment`,
         label: "Ödeme",
         icon: (
             <CreditCard className="text-neutral-700 dark:text-neutral-200 h-5 w-5 flex-shrink-0" />
@@ -45,7 +46,7 @@ const allMenuItems = [
         requiredStatus: "verified"
     },
     {
-        href: "/dashboard/preferences",
+        href: `${basePath}/preferences`,
         label: "Tercihlerim",
         icon: (
             <ListChecks className="text-neutral-700 dark:text-neutral-200 h-5 w-5 flex-shrink-0" />
@@ -53,7 +54,7 @@ const allMenuItems = [
         requiredStatus: "active"
     },
     {
-        href: "/dashboard/analytics",
+        href: `${basePath}/analytics`,
         label: "Analiz",
         icon: (
             <BarChart3 className="text-neutral-700 dark:text-neutral-200 h-5 w-5 flex-shrink-0" />
@@ -61,7 +62,47 @@ const allMenuItems = [
         requiredStatus: "active"
     },
     {
-        href: "/dashboard/profile",
+        href: `${basePath}/programs`,
+        label: "Program Sihirbazı",
+        icon: (
+            <GraduationCap className="text-neutral-700 dark:text-neutral-200 h-5 w-5 flex-shrink-0" />
+        ),
+        requiredStatus: "active"
+    },
+    {
+        href: `${basePath}/scenarios`,
+        label: "Senaryolarım",
+        icon: (
+            <ListChecks className="text-neutral-700 dark:text-neutral-200 h-5 w-5 flex-shrink-0" />
+        ),
+        requiredStatus: "active"
+    },
+    {
+        href: `${basePath}/market`,
+        label: "Piyasa Analizi",
+        icon: (
+            <BarChart3 className="text-neutral-700 dark:text-neutral-200 h-5 w-5 flex-shrink-0" />
+        ),
+        requiredStatus: "active"
+    },
+    {
+        href: `${basePath}/export`,
+        label: "Raporlar",
+        icon: (
+            <CheckCircle className="text-neutral-700 dark:text-neutral-200 h-5 w-5 flex-shrink-0" />
+        ),
+        requiredStatus: "active"
+    },
+    {
+        href: `${basePath}/settings`,
+        label: "Ayarlar",
+        icon: (
+            <Settings className="text-neutral-700 dark:text-neutral-200 h-5 w-5 flex-shrink-0" />
+        ),
+        requiredStatus: null
+    },
+    {
+        href: `${basePath}/profile`,
         label: "Profil",
         icon: (
             <User className="text-neutral-700 dark:text-neutral-200 h-5 w-5 flex-shrink-0" />
@@ -72,10 +113,15 @@ const allMenuItems = [
 
 const statusOrder = ["registered", "verified", "active", "expired", "suspended"];
 
-export function DashboardSidebar() {
+interface DashboardSidebarProps {
+    user: SupabaseUser;
+    accountStatus: "registered" | "verified" | "active";
+    basePath?: string;
+}
+
+export function DashboardSidebar({ user, accountStatus, basePath = "/dashboard" }: DashboardSidebarProps) {
     const pathname = usePathname();
-    const { data: session } = useSession();
-    const accountStatus = (session?.user as { accountStatus: string })?.accountStatus || "registered";
+    const allMenuItems = getMenuItems(basePath);
 
     // Filter menu items based on account status
     const visibleMenuItems = allMenuItems.filter((item) => {
@@ -100,8 +146,9 @@ export function DashboardSidebar() {
         <Sidebar>
             <SidebarBody className="justify-between gap-10">
                 <div className="flex flex-col flex-1 overflow-y-auto overflow-x-hidden">
-                    <Logo />
-                    <div className="mt-8 flex flex-col gap-2">
+                    <Logo basePath={basePath} />
+
+                    <div className="mt-4 flex flex-col gap-2">
                         {links.map((link, idx) => (
                             <SidebarLink
                                 key={idx}
@@ -117,19 +164,19 @@ export function DashboardSidebar() {
                     </div>
                 </div>
                 <div>
-                    <SidebarFooter session={session} />
+                    <SidebarFooter user={user} />
                 </div>
             </SidebarBody>
         </Sidebar>
     );
 }
 
-export const Logo = () => {
+export const Logo = ({ basePath = "/dashboard" }: { basePath?: string }) => {
     const { open, animate } = useSidebar();
 
     return (
         <Link
-            href="/dashboard"
+            href="/"
             className="font-normal flex space-x-2 items-center text-sm text-black py-1 relative z-20"
         >
             <Image
@@ -152,49 +199,86 @@ export const Logo = () => {
     );
 };
 
-const SidebarFooter = ({ session }: { session: any }) => {
+const SidebarFooter = ({ user }: { user: SupabaseUser }) => {
     const { open, animate } = useSidebar();
+    const router = useRouter();
+    const supabase = createClient();
 
     return (
         <div className="border-t border-neutral-200 dark:border-neutral-700 pt-4">
             <div className={cn(
-                "flex gap-2 px-2 py-2",
-                open ? "flex-row items-center justify-between" : "flex-col items-center justify-center"
+                "flex items-center px-2 py-2",
+                open ? "gap-2 justify-between" : "justify-center"
             )}>
-                <div className={cn(
-                    "flex items-center gap-2",
-                    open ? "min-w-0" : "flex-col"
-                )}>
-                    <div className="h-7 w-7 flex-shrink-0 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center">
-                        <span className="text-white text-xs font-semibold">
-                            {session?.user?.name?.charAt(0).toUpperCase() || session?.user?.email?.charAt(0).toUpperCase() || "U"}
-                        </span>
-                    </div>
-                    <motion.div
-                        className="flex flex-col overflow-hidden"
-                        animate={{
-                            display: animate ? (open ? "flex" : "none") : "flex",
-                            opacity: animate ? (open ? 1 : 0) : 1,
-                        }}
-                    >
-                        <span className="text-sm font-medium text-neutral-700 dark:text-neutral-200 truncate">
-                            {session?.user?.name || "User"}
-                        </span>
-                        <span className="text-xs text-neutral-500 dark:text-neutral-400 truncate">
-                            {session?.user?.email}
-                        </span>
-                    </motion.div>
+                <div className="h-7 w-7 flex-shrink-0 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center">
+                    <span className="text-white text-xs font-semibold">
+                        {user?.user_metadata?.name?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || "U"}
+                    </span>
                 </div>
                 {open && (
-                    <button
-                        onClick={() => signOut({ callbackUrl: "/login" })}
-                        className="flex-shrink-0 p-2 rounded-md hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors cursor-pointer"
-                        aria-label="Çıkış Yap"
-                    >
-                        <LogOut className="text-neutral-700 dark:text-neutral-200 h-5 w-5" />
-                    </button>
+                    <>
+                        <motion.div
+                            className="flex flex-col overflow-hidden min-w-0 flex-1"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                        >
+                            <span className="text-sm font-medium text-neutral-700 dark:text-neutral-200 truncate">
+                                {user?.user_metadata?.name || "User"}
+                            </span>
+                            <span className="text-xs text-neutral-500 dark:text-neutral-400 truncate">
+                                {user?.email}
+                            </span>
+                        </motion.div>
+                        <motion.button
+                            onClick={async () => {
+                                await supabase.auth.signOut();
+                                router.push("/login");
+                                router.refresh();
+                            }}
+                            className="flex-shrink-0 p-2 rounded-md hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors cursor-pointer"
+                            aria-label="Çıkış Yap"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                        >
+                            <LogOut className="text-neutral-700 dark:text-neutral-200 h-5 w-5" />
+                        </motion.button>
+                    </>
                 )}
             </div>
         </div>
+    );
+};
+
+const AccountStatusBadge = ({ accountStatus }: { accountStatus: "registered" | "verified" | "active" }) => {
+    const { open, animate } = useSidebar();
+
+    const getStatusText = () => {
+        if (accountStatus === "registered") return "Kayıt Tamamlandı";
+        if (accountStatus === "verified") return "ÖSYM Doğrulandı";
+        if (accountStatus === "active") return "Aktif Üyelik";
+        return "";
+    };
+
+    return (
+        <motion.div
+            className="mt-4 px-3"
+            animate={{
+                display: animate ? (open ? "block" : "none") : "block",
+                opacity: animate ? (open ? 1 : 0) : 1,
+            }}
+        >
+            <div className={cn(
+                "px-3 py-2 rounded-lg text-xs font-medium text-center whitespace-nowrap overflow-hidden",
+                accountStatus === "active" && "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+                accountStatus === "verified" && "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+                accountStatus === "registered" && "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
+            )}>
+                {getStatusText()}
+            </div>
+        </motion.div>
     );
 };

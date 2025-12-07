@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { hash } from "bcryptjs";
-import { convex } from "@/lib/convex";
-import { api } from "@/convex/_generated/api";
+import { createClient } from "@/lib/supabase/server";
+import { db } from "@/lib/db";
+import { users } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 
 export async function POST(req: NextRequest) {
     try {
@@ -42,8 +43,11 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // Check if user already exists
-        const existingUser = await convex.query(api.users.getByEmail, { email });
+        // Check if user already exists in our custom users table
+        const existingUser = await db.query.users.findFirst({
+            where: eq(users.email, email),
+        });
+
         if (existingUser) {
             return NextResponse.json(
                 { error: "Bu e-posta adresi zaten kullanılıyor" },
@@ -51,16 +55,48 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // Hash password
-        const passwordHash = await hash(password, 12);
+        // Create user in Supabase Auth
+        const supabase = await createClient();
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+                data: {
+                    name,
+                    phone,
+                },
+            },
+        });
 
-        // Create user
-        const userId = await convex.mutation(api.users.create, {
+        if (authError) {
+            console.error("Supabase Auth error:", authError);
+            return NextResponse.json(
+                { error: authError.message || "Kayıt başarısız" },
+                { status: 400 }
+            );
+        }
+
+        if (!authData.user) {
+            return NextResponse.json(
+                { error: "Kullanıcı oluşturulamadı" },
+                { status: 500 }
+            );
+        }
+
+        // Create user in our custom users table
+        // Note: passwordHash is empty because Supabase Auth handles authentication
+        const [newUser] = await db.insert(users).values({
+            id: authData.user.id, // Use Supabase Auth user ID
             name,
             email,
             phone,
-            passwordHash,
-        });
+            passwordHash: "", // Supabase Auth handles password
+            accountStatus: "registered",
+            verifiedPeriods: [],
+            paidPeriods: [],
+        }).returning();
+
+        const userId = newUser.id;
 
         return NextResponse.json(
             {

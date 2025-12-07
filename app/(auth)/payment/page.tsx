@@ -2,16 +2,27 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
+import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 
 export default function PaymentPage() {
     const router = useRouter();
-    const { data: session, status } = useSession();
+    const [user, setUser] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
     const [agreedToPolicy, setAgreedToPolicy] = useState(false);
+
+    useEffect(() => {
+        const supabase = createClient();
+        const getUser = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            setUser(user);
+            setLoading(false);
+        };
+        getUser();
+    }, []);
 
     const price = 299.99;
     const currency = "TRY";
@@ -49,11 +60,11 @@ export default function PaymentPage() {
         }
     };
 
-    if (status === "loading") {
+    if (loading) {
         return <div className="flex items-center justify-center min-h-screen">Yükleniyor...</div>;
     }
 
-    if (!session) {
+    if (!user) {
         router.push("/login");
         return null;
     }

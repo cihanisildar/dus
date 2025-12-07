@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "../[...nextauth]/route";
-import { convex } from "@/lib/convex";
-import { api } from "@/convex/_generated/api";
-import type { Id } from "@/convex/_generated/dataModel";
+import { createClient } from "@/lib/supabase/server";
+import { db } from "@/lib/db";
+import { examPeriods } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
+import { createVerification } from "@/lib/db/transactions";
 
 // Mock ÖSYM verification - Replace with actual ÖSYM API integration
 const verifyOSYMCode = async (resultCode: string) => {
@@ -16,19 +16,68 @@ const verifyOSYMCode = async (resultCode: string) => {
         return null;
     }
 
-    // Mock DUS score retrieval
+    // Test codes with realistic data
+    const testData: Record<string, any> = {
+        "20250315-12345": {
+            dusScore: 74.52,
+            examDate: new Date("2025-03-15").getTime(),
+            basicSciencesCorrect: 22,
+            basicSciencesWrong: 2,
+            clinicalSciencesCorrect: 74,
+            clinicalSciencesWrong: 5,
+            ranking: 234,
+            totalCandidates: 3926,
+            isValid: true,
+        },
+        "20250315-67890": {
+            dusScore: 82.15,
+            examDate: new Date("2025-03-15").getTime(),
+            basicSciencesCorrect: 24,
+            basicSciencesWrong: 0,
+            clinicalSciencesCorrect: 78,
+            clinicalSciencesWrong: 1,
+            ranking: 89,
+            totalCandidates: 3926,
+            isValid: true,
+        },
+        "20250315-11111": {
+            dusScore: 65.30,
+            examDate: new Date("2025-03-15").getTime(),
+            basicSciencesCorrect: 18,
+            basicSciencesWrong: 6,
+            clinicalSciencesCorrect: 68,
+            clinicalSciencesWrong: 11,
+            ranking: 1250,
+            totalCandidates: 3926,
+            isValid: true,
+        },
+    };
+
+    // Return test data if code matches, otherwise generate random data
+    if (testData[resultCode]) {
+        return testData[resultCode];
+    }
+
+    // For any other valid format code, generate realistic random data
     return {
         dusScore: 65.5 + Math.random() * 30, // Mock score 65-95
         examDate: new Date("2025-03-15").getTime(),
+        basicSciencesCorrect: Math.floor(15 + Math.random() * 10), // 15-24
+        basicSciencesWrong: Math.floor(Math.random() * 9), // 0-8
+        clinicalSciencesCorrect: Math.floor(60 + Math.random() * 20), // 60-79
+        clinicalSciencesWrong: Math.floor(Math.random() * 19), // 0-18
+        ranking: Math.floor(1 + Math.random() * 3000), // 1-3000
+        totalCandidates: 3926,
         isValid: true,
     };
 };
 
 export async function POST(req: NextRequest) {
     try {
-        const session = await getServerSession(authOptions);
+        const supabase = await createClient();
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-        if (!session?.user) {
+        if (authError || !user) {
             return NextResponse.json(
                 { error: "Oturum bulunamadı. Lütfen giriş yapın." },
                 { status: 401 }
@@ -56,7 +105,9 @@ export async function POST(req: NextRequest) {
         }
 
         // Get active exam period
-        const activePeriod = await convex.query(api.periods.getActive, {});
+        const activePeriod = await db.query.examPeriods.findFirst({
+            where: eq(examPeriods.isActive, true),
+        });
 
         if (!activePeriod) {
             return NextResponse.json(
@@ -65,33 +116,26 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const userId = (session.user as { id: string }).id;
+        const userId = user.id;
 
-        // Save verification
-        await convex.mutation(api.verifications.create, {
-            userId: userId as Id<"users">,
-            periodId: activePeriod._id,
+        // Get user name from Supabase metadata
+        const userName = user.user_metadata?.name || user.email?.split('@')[0] || undefined;
+
+        // Create verification using transaction (atomic operation)
+        // This creates verification record AND updates user status
+        await createVerification({
+            userId,
+            periodId: activePeriod.id,
             osymResultCode,
-            dusScore: verification.dusScore,
-            examDate: verification.examDate,
-        });
-
-        // Get current user to add to verified periods array
-        const user = await convex.query(api.users.getById, { id: userId as Id<"users"> });
-
-        if (!user) {
-            return NextResponse.json(
-                { error: "Kullanıcı bulunamadı" },
-                { status: 404 }
-            );
-        }
-
-        // Update user status to "verified" and add period to verified periods
-        await convex.mutation(api.users.update, {
-            id: userId as Id<"users">,
-            accountStatus: "verified",
-            currentPeriodId: activePeriod._id,
-            verifiedPeriods: [...user.verifiedPeriods, activePeriod._id],
+            dusScore: Math.round(verification.dusScore * 100), // Store as integer (6550 = 65.50)
+            examDate: new Date(verification.examDate),
+            userName,
+            basicSciencesCorrect: verification.basicSciencesCorrect,
+            basicSciencesWrong: verification.basicSciencesWrong,
+            clinicalSciencesCorrect: verification.clinicalSciencesCorrect,
+            clinicalSciencesWrong: verification.clinicalSciencesWrong,
+            ranking: verification.ranking,
+            totalCandidates: verification.totalCandidates,
         });
 
         return NextResponse.json({
