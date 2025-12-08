@@ -31,8 +31,10 @@ export default async function DashboardLayout({
             </div>
 
             {/* Main content */}
-            <main className="flex-1 overflow-y-auto w-full md:w-auto">
-                {children}
+            <main className="flex-1 overflow-y-auto overflow-x-hidden w-full pt-16 md:pt-0 md:w-auto">
+                <div className="min-h-screen">
+                    {children}
+                </div>
             </main>
         </div>
     );

@@ -117,9 +117,11 @@ interface DashboardSidebarProps {
     user: SupabaseUser;
     accountStatus: "registered" | "verified" | "active";
     basePath?: string;
+    isMobile?: boolean;
+    onNavigate?: () => void;
 }
 
-export function DashboardSidebar({ user, accountStatus, basePath = "/dashboard" }: DashboardSidebarProps) {
+export function DashboardSidebar({ user, accountStatus, basePath = "/dashboard", isMobile = false, onNavigate }: DashboardSidebarProps) {
     const pathname = usePathname();
     const allMenuItems = getMenuItems(basePath);
 
@@ -142,6 +144,57 @@ export function DashboardSidebar({ user, accountStatus, basePath = "/dashboard" 
 
     const links = visibleMenuItems;
 
+    // Mobile version - render content directly without Sidebar wrapper
+    if (isMobile) {
+        return (
+            <div className="h-full flex flex-col bg-neutral-100 dark:bg-neutral-800 px-4 py-4">
+                <div className="flex flex-col flex-1 overflow-y-auto overflow-x-hidden">
+                    {/* Simple logo without sidebar context */}
+                    <Link
+                        href="/"
+                        className="font-normal flex space-x-2 items-center text-sm text-black py-1 relative z-20"
+                    >
+                        <Image
+                            src="/dentist_504010.png"
+                            alt="DUS360 Logo"
+                            width={32}
+                            height={32}
+                            className="rounded-lg flex-shrink-0"
+                        />
+                        <span className="font-medium text-black dark:text-white whitespace-pre">
+                            DUS360
+                        </span>
+                    </Link>
+
+                    <div className="mt-8 flex flex-col gap-2">
+                        {links.map((link, idx) => (
+                            <Link
+                                key={idx}
+                                href={link.href}
+                                onClick={() => onNavigate?.()}
+                                className={cn(
+                                    "flex items-center gap-3 px-3 py-3 rounded-md transition-colors",
+                                    pathname === link.href
+                                        ? "bg-neutral-200 dark:bg-neutral-700"
+                                        : "hover:bg-neutral-200 dark:hover:bg-neutral-700"
+                                )}
+                            >
+                                {link.icon}
+                                <span className="text-neutral-700 dark:text-neutral-200 text-sm">
+                                    {link.label}
+                                </span>
+                            </Link>
+                        ))}
+                    </div>
+                </div>
+                <div>
+                    <MobileSidebarFooter user={user} />
+                </div>
+            </div>
+        );
+    }
+
+    // Desktop version - use Sidebar wrapper
     return (
         <Sidebar>
             <SidebarBody className="justify-between gap-10">
@@ -248,6 +301,43 @@ const SidebarFooter = ({ user }: { user: SupabaseUser }) => {
                         </motion.button>
                     </>
                 )}
+            </div>
+        </div>
+    );
+};
+
+// Mobile version without sidebar context
+const MobileSidebarFooter = ({ user }: { user: SupabaseUser }) => {
+    const router = useRouter();
+    const supabase = createClient();
+
+    return (
+        <div className="border-t border-neutral-200 dark:border-neutral-700 pt-4">
+            <div className="flex items-center gap-2 justify-between px-2 py-2">
+                <div className="h-7 w-7 flex-shrink-0 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center">
+                    <span className="text-white text-xs font-semibold">
+                        {user?.user_metadata?.name?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || "U"}
+                    </span>
+                </div>
+                <div className="flex flex-col overflow-hidden min-w-0 flex-1">
+                    <span className="text-sm font-medium text-neutral-700 dark:text-neutral-200 truncate">
+                        {user?.user_metadata?.name || "User"}
+                    </span>
+                    <span className="text-xs text-neutral-500 dark:text-neutral-400 truncate">
+                        {user?.email}
+                    </span>
+                </div>
+                <button
+                    onClick={async () => {
+                        await supabase.auth.signOut();
+                        router.push("/login");
+                        router.refresh();
+                    }}
+                    className="flex-shrink-0 p-2 rounded-md hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors cursor-pointer"
+                    aria-label="Çıkış Yap"
+                >
+                    <LogOut className="text-neutral-700 dark:text-neutral-200 h-5 w-5" />
+                </button>
             </div>
         </div>
     );
