@@ -68,26 +68,6 @@ const values = [
   },
 ]
 
-const team = [
-  {
-    name: "Dr. Ahmet Yılmaz",
-    role: "Kurucu & CEO",
-    image: "/images/team-1.jpg",
-    bio: "10+ yıllık eğitim teknolojisi deneyimi"
-  },
-  {
-    name: "Ayşe Demir",
-    role: "CTO",
-    image: "/images/team-2.jpg",
-    bio: "Yapay zeka ve veri bilimi uzmanı"
-  },
-  {
-    name: "Mehmet Kaya",
-    role: "Veri Analisti",
-    image: "/images/team-3.jpg",
-    bio: "İstatistik ve makine öğrenmesi uzmanı"
-  },
-]
 
 export default function AboutPage() {
   return (
@@ -293,50 +273,6 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* Team Section */}
-      <section className="py-20 bg-gradient-to-b from-white via-blue-50/20 to-white">
-        <div className="container mx-auto max-w-7xl px-6">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center mb-16"
-          >
-            <h2 className="text-3xl md:text-5xl font-bold mb-4">
-              Ekibimiz
-            </h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              DUS360'ı mümkün kılan tutkulu insanlar
-            </p>
-          </motion.div>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            {team.map((member, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1, duration: 0.6 }}
-              >
-                <Card className="overflow-hidden group hover:shadow-xl transition-all duration-300 border-0">
-                  <div className="relative h-64 bg-gradient-to-br from-blue-100 to-purple-100">
-                    {/* Placeholder for team member image */}
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <Users className="w-24 h-24 text-blue-300" />
-                    </div>
-                  </div>
-                  <CardContent className="pt-6 text-center">
-                    <h3 className="text-xl font-bold mb-1">{member.name}</h3>
-                    <p className="text-primary font-medium mb-3">{member.role}</p>
-                    <p className="text-sm text-muted-foreground">{member.bio}</p>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* CTA Section */}
       <section className="py-20 bg-white">
