@@ -1,4 +1,5 @@
 export type PaymentStatus = "pending" | "completed" | "failed" | "refunded";
+export type PaymentProvider = "paddle" | "iyzico"; // iyzico kept for legacy data only
 
 export interface Payment {
     _id: string;
@@ -8,10 +9,10 @@ export interface Payment {
     amount: number;
     currency: "TRY";
     status: PaymentStatus;
-    provider: "iyzico";
-    transactionId: string; // iyzico transaction ID
-    paymentToken: string; // iyzico payment token
-    conversationId: string; // iyzico conversation ID
+    provider: PaymentProvider;
+    transactionId: string;
+    paymentToken: string;
+    conversationId?: string; // Legacy iyzico field, nullable
     paidAt?: number;
     metadata: {
         ip: string;

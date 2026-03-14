@@ -14,7 +14,7 @@ import { VerifySkeleton } from "@/components/skeletons/verify-skeleton";
 export default function VerifyPage() {
     const router = useRouter();
     const { user, loading } = useUser();
-    const [osymCode, setOsymCode] = useState("");
+    const [belgeKodu, setBelgeKodu] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState(false);
@@ -58,7 +58,7 @@ export default function VerifyPage() {
             const response = await fetch("/api/auth/verify-osym", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ osymResultCode: osymCode }),
+                body: JSON.stringify({ belgeKodu }),
             });
 
             const data = await response.json();
@@ -364,21 +364,21 @@ export default function VerifyPage() {
                         <div className="bg-white rounded-xl border border-gray-200 p-8">
                             <div className="space-y-6">
                                 <div>
-                                    <Label htmlFor="osym-code" className="text-sm font-medium text-gray-900">
-                                        ÖSYM Sonuç Kodu
+                                    <Label htmlFor="belge-kodu" className="text-sm font-medium text-gray-900">
+                                        Sonuç Belgesi Kontrol Kodu
                                     </Label>
                                     <Input
-                                        id="osym-code"
-                                        name="osym-code"
+                                        id="belge-kodu"
+                                        name="belge-kodu"
                                         type="text"
                                         required
-                                        placeholder="YYYYAAGG-XXXXX (örn: 20250315-12345)"
-                                        value={osymCode}
-                                        onChange={(e) => setOsymCode(e.target.value)}
-                                        className="mt-2"
+                                        placeholder="ÖSYM sonuç belgenizin alt kısmındaki kod"
+                                        value={belgeKodu}
+                                        onChange={(e) => setBelgeKodu(e.target.value.toUpperCase())}
+                                        className="mt-2 font-mono"
                                     />
                                     <p className="mt-2 text-sm text-gray-500">
-                                        ÖSYM sonuç belgenizde bulunan kodu girin
+                                        Sonuç belgenizin en altında &quot;Kontrol Kodu&quot; olarak geçen kodu girin
                                     </p>
                                 </div>
 
@@ -387,12 +387,10 @@ export default function VerifyPage() {
                                         <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
                                         <div>
                                             <h3 className="text-sm font-semibold text-blue-900 mb-1">
-                                                ÖSYM Sonuç Kodu Nedir?
+                                                Kontrol Kodu Nerede?
                                             </h3>
                                             <p className="text-sm text-blue-700">
-                                                DUS sınavı sonucunu öğrendikten sonra ÖSYM'den aldığınız sonuç belgesinde
-                                                bulunan benzersiz kodunuzdur. Bu kod ile sınav puanınız otomatik olarak
-                                                alınacaktır.
+                                                DUS sınav sonuç belgenizin en alt kısmında &quot;Sonuç Belgesi Kontrol Kodu&quot; başlığı altında yer alan harf ve rakamlardan oluşan koddur.
                                             </p>
                                         </div>
                                     </div>
@@ -413,7 +411,7 @@ export default function VerifyPage() {
                             <Button
                                 type="submit"
                                 className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                                disabled={isLoading || !osymCode || !activePeriod}
+                                disabled={isLoading || !belgeKodu || belgeKodu.length < 8 || !activePeriod}
                             >
                                 {isLoading ? "Doğrulanıyor..." : activePeriod ? "Doğrula" : "Aktif Dönem Yok"}
                             </Button>

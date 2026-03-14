@@ -140,13 +140,13 @@ export function Navbar() {
                       size="sm"
                       className={cn(isScrolled && 'lg:hidden')}
                     >
-                      <Link href="/login">
-                        <span>Giriş Yap</span>
+                      <Link href="/demo">
+                        <span>Demo</span>
                       </Link>
                     </Button>
                     <Button asChild size="sm" className={cn(isScrolled && 'lg:hidden')}>
                       <Link href="/register">
-                        <span>Kayıt Ol</span>
+                        <span>Ücretsiz Başla</span>
                       </Link>
                     </Button>
                     <Button

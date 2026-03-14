@@ -26,14 +26,16 @@ export const periodQueries = {
 
   // Create period
   async create(data: Omit<NewExamPeriod, 'id' | 'createdAt' | 'updatedAt'>): Promise<ExamPeriod> {
-    // Deactivate all other periods if this one is active
-    if (data.isActive) {
-      await db.update(examPeriods)
-        .set({ isActive: false, updatedAt: new Date() })
-        .where(eq(examPeriods.isActive, true))
-    }
+    return await db.transaction(async (tx) => {
+      // Deactivate all other periods atomically before creating the new active one
+      if (data.isActive) {
+        await tx.update(examPeriods)
+          .set({ isActive: false, updatedAt: new Date() })
+          .where(eq(examPeriods.isActive, true))
+      }
 
-    const [period] = await db.insert(examPeriods).values(data).returning()
-    return period
+      const [period] = await tx.insert(examPeriods).values(data).returning()
+      return period
+    })
   },
 }

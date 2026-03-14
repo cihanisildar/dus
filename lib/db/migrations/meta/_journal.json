@@ -29,6 +29,41 @@
       "when": 1765057345558,
       "tag": "0003_small_veda",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1773426236808,
+      "tag": "0004_useful_barracuda",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1773427082344,
+      "tag": "0005_dry_human_torch",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1773427923631,
+      "tag": "0006_nostalgic_sandman",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1773441570945,
+      "tag": "0007_lively_captain_marvel",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1773441570946,
+      "tag": "0008_paddle_and_schema_updates",
+      "breakpoints": true
     }
   ]
 }

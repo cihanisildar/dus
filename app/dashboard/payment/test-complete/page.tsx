@@ -89,7 +89,7 @@ export default function TestPaymentCompletePage() {
                             </h1>
                             <p className="text-sm text-amber-800">
                                 This is a <strong>TEST PAGE</strong> for completing mock payments.
-                                In production, this would be handled by iyzico callback.
+                                In production, this is handled automatically by Paddle webhook.
                             </p>
                         </div>
                     </div>
@@ -156,10 +156,6 @@ export default function TestPaymentCompletePage() {
                                         <div className="flex justify-between">
                                             <span className="text-gray-600">Token:</span>
                                             <span className="font-mono text-gray-900">{payment.paymentToken}</span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span className="text-gray-600">Conversation ID:</span>
-                                            <span className="font-mono text-gray-900">{payment.conversationId}</span>
                                         </div>
                                     </div>
 

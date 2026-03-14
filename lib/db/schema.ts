@@ -1,6 +1,6 @@
 import {
   pgTable, uuid, text, varchar, timestamp, integer,
-  boolean, pgEnum, jsonb, index
+  boolean, pgEnum, jsonb, index, uniqueIndex
 } from 'drizzle-orm/pg-core'
 import { sql } from 'drizzle-orm'
 
@@ -14,7 +14,7 @@ export const paymentStatusEnum = pgEnum('payment_status', [
 ])
 
 export const currencyEnum = pgEnum('currency', ['TRY'])
-export const paymentProviderEnum = pgEnum('payment_provider', ['iyzico'])
+export const paymentProviderEnum = pgEnum('payment_provider', ['iyzico', 'paddle'])
 
 // Exam Periods Table
 export const examPeriods = pgTable('exam_periods', {
@@ -38,8 +38,8 @@ export const users = pgTable('users', {
   id: uuid('id').primaryKey(), // No default - will be set from Supabase Auth
   name: text('name').notNull(),
   email: text('email').notNull().unique(),
-  phone: varchar('phone', { length: 20 }).notNull(),
-  passwordHash: text('password_hash').notNull(), // Empty for Supabase Auth users
+  phone: varchar('phone', { length: 20 }).notNull().unique(),
+  passwordHash: text('password_hash'), // Null for Supabase Auth users
 
   // Period tracking - Using PostgreSQL array columns
   currentPeriodId: uuid('current_period_id').references(() => examPeriods.id),
@@ -73,7 +73,7 @@ export const payments = pgTable('payments', {
   provider: paymentProviderEnum('provider').notNull().default('iyzico'),
   transactionId: varchar('transaction_id', { length: 255 }).notNull(),
   paymentToken: varchar('payment_token', { length: 255 }).notNull().unique(),
-  conversationId: varchar('conversation_id', { length: 255 }).notNull(),
+  conversationId: varchar('conversation_id', { length: 255 }),
   paidAt: timestamp('paid_at'),
   metadata: jsonb('metadata').$type<{ ip: string; userAgent: string }>().notNull(),
   createdAt: timestamp('created_at').notNull().defaultNow(),
@@ -88,9 +88,9 @@ export const payments = pgTable('payments', {
 // OSYM Verifications Table
 export const osymVerifications = pgTable('osym_verifications', {
   id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }), // nullable for synthetic users
   periodId: uuid('period_id').notNull().references(() => examPeriods.id),
-  osymResultCode: varchar('osym_result_code', { length: 50 }).notNull(),
+  osymResultCode: varchar('osym_result_code', { length: 100 }).notNull(), // Sonuç Belgesi Kontrol Kodu from result document
   dusScore: integer('dus_score').notNull(), // Store as integer (6550 = 65.50)
   examDate: timestamp('exam_date').notNull(),
 
@@ -103,14 +103,16 @@ export const osymVerifications = pgTable('osym_verifications', {
   ranking: integer('ranking'),
   totalCandidates: integer('total_candidates'),
 
+  isSynthetic: boolean('is_synthetic').notNull().default(false),
   verifiedAt: timestamp('verified_at').notNull().defaultNow(),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 }, (table) => ({
   userIdx: index('idx_osym_verifications_user').on(table.userId),
   periodIdx: index('idx_osym_verifications_period').on(table.periodId),
   codeIdx: index('idx_osym_verifications_code').on(table.osymResultCode),
-  // Unique constraint: one verification per user per period
-  userPeriodUnique: index('idx_osym_user_period_unique').on(table.userId, table.periodId),
+  syntheticIdx: index('idx_osym_verifications_synthetic').on(table.isSynthetic),
+  // Unique constraint: one verification per user per period (non-synthetic only)
+  userPeriodUnique: uniqueIndex('idx_osym_user_period_unique').on(table.userId, table.periodId),
 }))
 
 // Programs Table - Available specialties and programs
@@ -164,8 +166,8 @@ export const userPreferences = pgTable('user_preferences', {
   periodIdx: index('idx_user_preferences_period').on(table.periodId),
   programIdx: index('idx_user_preferences_program').on(table.programId),
   // Unique constraint: one rank per user per period, one program per user per period
-  userPeriodRankUnique: index('idx_user_period_rank_unique').on(table.userId, table.periodId, table.rank),
-  userPeriodProgramUnique: index('idx_user_period_program_unique').on(table.userId, table.periodId, table.programId),
+  userPeriodRankUnique: uniqueIndex('idx_user_period_rank_unique').on(table.userId, table.periodId, table.rank),
+  userPeriodProgramUnique: uniqueIndex('idx_user_period_program_unique').on(table.userId, table.periodId, table.programId),
 }))
 
 // Scenarios Table - What-if scenario analysis
@@ -194,6 +196,21 @@ export const scenarios = pgTable('scenarios', {
   periodIdx: index('idx_scenarios_period').on(table.periodId),
 }))
 
+// Program Cutoff History Table - Multi-year trend data
+export const programCutoffHistory = pgTable('program_cutoff_history', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  programId: uuid('program_id').notNull().references(() => programs.id, { onDelete: 'cascade' }),
+  year: integer('year').notNull(),          // 2021, 2022, 2023, 2024
+  period: varchar('period', { length: 10 }), // '1' or '2' (semester)
+  cutoffScore: integer('cutoff_score').notNull(), // 7250 = 72.50
+  spots: integer('spots').notNull(),
+  applicants: integer('applicants'),
+}, (table) => ({
+  programYearUnique: uniqueIndex('idx_history_program_year_period').on(table.programId, table.year, table.period),
+  programIdx: index('idx_history_program').on(table.programId),
+  yearIdx: index('idx_history_year').on(table.year),
+}))
+
 // Type exports for use in application
 export type User = typeof users.$inferSelect
 export type NewUser = typeof users.$inferInsert
@@ -209,3 +226,5 @@ export type UserPreference = typeof userPreferences.$inferSelect
 export type NewUserPreference = typeof userPreferences.$inferInsert
 export type Scenario = typeof scenarios.$inferSelect
 export type NewScenario = typeof scenarios.$inferInsert
+export type ProgramCutoffHistory = typeof programCutoffHistory.$inferSelect
+export type NewProgramCutoffHistory = typeof programCutoffHistory.$inferInsert

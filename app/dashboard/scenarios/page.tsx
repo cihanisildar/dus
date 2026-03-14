@@ -1,37 +1,12 @@
-import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
 import { Sparkles } from "lucide-react";
-import { db } from "@/lib/db";
-import { users } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { requireActiveUser } from "@/lib/actions/auth";
 import { scenarioQueries } from "@/lib/db/queries/scenarios";
 import { periodQueries } from "@/lib/db/queries/periods";
 import { preferenceQueries } from "@/lib/db/queries/preferences";
 import { ScenariosClient } from "@/components/scenarios/scenarios-client";
 
 export default async function ScenariosPage() {
-    const supabase = await createClient();
-    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !authUser) {
-        redirect("/login");
-    }
-
-    // Fetch user data from custom users table
-    const user = await db.query.users.findFirst({
-        where: eq(users.id, authUser.id)
-    });
-
-    if (!user) {
-        redirect("/login");
-    }
-
-    const accountStatus = user.accountStatus;
-
-    // Only active users can access this page
-    if (accountStatus !== "active") {
-        redirect("/dashboard");
-    }
+    const user = await requireActiveUser();
 
     // Get active period
     const activePeriod = await periodQueries.getActive();
@@ -47,10 +22,10 @@ export default async function ScenariosPage() {
     }
 
     // Fetch user's scenarios
-    const savedScenarios = await scenarioQueries.getByUserAndPeriod(authUser.id, activePeriod.id);
+    const savedScenarios = await scenarioQueries.getByUserAndPeriod(user.id, activePeriod.id);
 
     // Check if user has preferences
-    const userPreferences = await preferenceQueries.getByUserAndPeriod(authUser.id, activePeriod.id);
+    const userPreferences = await preferenceQueries.getByUserAndPeriod(user.id, activePeriod.id);
     const hasPreferences = userPreferences.length > 0;
 
     return (

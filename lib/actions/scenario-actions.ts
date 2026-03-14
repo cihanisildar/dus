@@ -8,6 +8,10 @@ import { programQueries } from "@/lib/db/queries/programs";
 import { verificationQueries } from "@/lib/db/queries/verifications";
 import type { Scenario } from "@/lib/db/schema";
 import { revalidatePath } from "next/cache";
+import { calculatePlacementMetrics } from "@/lib/utils/placement";
+import { db } from "@/lib/db";
+import { userPreferences } from "@/lib/db/schema";
+import { and, eq } from "drizzle-orm";
 
 type ActionResult<T = void> =
   | { success: true; data: T }
@@ -35,14 +39,7 @@ async function calculateScenarioResult(
     .filter(p => p !== undefined)
     .map((program) => {
       const cutoff = program!.estimatedCutoff / 100
-      const scoreDiff = userScore - cutoff
-
-      let probability = 0
-      if (scoreDiff >= 5) probability = 95
-      else if (scoreDiff >= 2) probability = 85
-      else if (scoreDiff >= -1) probability = 65
-      else probability = 35
-
+      const { probability } = calculatePlacementMetrics(userScore, cutoff)
       return {
         name: `${program!.university} - ${program!.specialty}`,
         probability,
@@ -144,8 +141,7 @@ export async function createScenarioFromPreferences(
       preferenceCount: preferences.length,
     })
 
-    revalidatePath("/dashboard/scenarios")
-    revalidatePath("/dashboard")
+    revalidatePath("/dashboard", "layout")
 
     return { success: true, data: scenario }
   } catch (error) {
@@ -174,8 +170,7 @@ export async function deleteScenario(scenarioId: string): Promise<ActionResult> 
 
     await scenarioQueries.delete(scenarioId)
 
-    revalidatePath("/dashboard/scenarios")
-    revalidatePath("/dashboard")
+    revalidatePath("/dashboard", "layout")
 
     return { success: true, data: undefined }
   } catch (error) {
@@ -207,9 +202,6 @@ export async function applyScenario(scenarioId: string): Promise<ActionResult> {
       return { success: false, error: "Scenario not found" }
     }
 
-    // Delete all current preferences
-    await preferenceQueries.deleteAllByUserAndPeriod(user.id, activePeriod.id)
-
     // Get user's DUS score for calculations
     const verification = await verificationQueries.getByUserAndPeriod(user.id, activePeriod.id)
     if (!verification) {
@@ -217,48 +209,39 @@ export async function applyScenario(scenarioId: string): Promise<ActionResult> {
     }
 
     const userScore = verification.dusScore / 100
-
-    // Create preferences from scenario snapshot
     const programIds = scenario.preferenceSnapshot as string[]
-    for (let i = 0; i < programIds.length; i++) {
-      const programId = programIds[i]
-      const program = await programQueries.getById(programId)
 
-      if (!program) continue
+    // Fetch all programs before entering the transaction
+    const programs = await Promise.all(programIds.map(id => programQueries.getById(id)))
 
-      const cutoff = program.estimatedCutoff / 100
-      const scoreDiff = userScore - cutoff
+    // Atomically delete all preferences and re-create from scenario snapshot
+    await db.transaction(async (tx) => {
+      await tx.delete(userPreferences).where(
+        and(
+          eq(userPreferences.userId, user.id),
+          eq(userPreferences.periodId, activePeriod.id)
+        )
+      )
 
-      let probability = 0
-      let riskLevel: "safe" | "high" | "medium" | "low" = "low"
+      for (let i = 0; i < programIds.length; i++) {
+        const program = programs[i]
+        if (!program) continue
 
-      if (scoreDiff >= 5) {
-        probability = 95
-        riskLevel = "safe"
-      } else if (scoreDiff >= 2) {
-        probability = 85
-        riskLevel = "high"
-      } else if (scoreDiff >= -1) {
-        probability = 65
-        riskLevel = "medium"
-      } else {
-        probability = 35
-        riskLevel = "low"
+        const cutoff = program.estimatedCutoff / 100
+        const { probability, riskLevel } = calculatePlacementMetrics(userScore, cutoff)
+
+        await tx.insert(userPreferences).values({
+          userId: user.id,
+          periodId: activePeriod.id,
+          programId: programIds[i],
+          rank: i + 1,
+          placementProbability: probability,
+          riskLevel,
+        })
       }
+    })
 
-      await preferenceQueries.create({
-        userId: user.id,
-        periodId: activePeriod.id,
-        programId,
-        rank: i + 1,
-        placementProbability: probability,
-        riskLevel,
-      })
-    }
-
-    revalidatePath("/dashboard/preferences")
-    revalidatePath("/dashboard/scenarios")
-    revalidatePath("/dashboard")
+    revalidatePath("/dashboard", "layout")
 
     return { success: true, data: undefined }
   } catch (error) {
@@ -297,8 +280,7 @@ export async function duplicateScenario(scenarioId: string): Promise<ActionResul
       preferenceCount: scenario.preferenceCount,
     })
 
-    revalidatePath("/dashboard/scenarios")
-    revalidatePath("/dashboard")
+    revalidatePath("/dashboard", "layout")
 
     return { success: true, data: newScenario }
   } catch (error) {

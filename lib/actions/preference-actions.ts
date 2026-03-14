@@ -6,39 +6,11 @@ import { programQueries } from "@/lib/db/queries/programs";
 import { periodQueries } from "@/lib/db/queries/periods";
 import { verificationQueries } from "@/lib/db/queries/verifications";
 import { revalidatePath } from "next/cache";
+import { calculatePlacementMetrics } from "@/lib/utils/placement";
 
 type ActionResult<T = void> =
   | { success: true; data: T }
   | { success: false; error: string }
-
-/**
- * Calculate placement probability and risk level for a preference
- */
-function calculatePlacementMetrics(userScore: number, programCutoff: number): {
-  probability: number
-  riskLevel: "safe" | "high" | "medium" | "low"
-} {
-  const scoreDiff = userScore - programCutoff
-
-  let probability: number
-  let riskLevel: "safe" | "high" | "medium" | "low"
-
-  if (scoreDiff >= 5) {
-    probability = 95
-    riskLevel = "safe"
-  } else if (scoreDiff >= 2) {
-    probability = 85
-    riskLevel = "high"
-  } else if (scoreDiff >= -1) {
-    probability = 65
-    riskLevel = "medium"
-  } else {
-    probability = 35
-    riskLevel = "low"
-  }
-
-  return { probability, riskLevel }
-}
 
 /**
  * Get all preferences for current user
@@ -123,8 +95,7 @@ export async function addPreference(programId: string): Promise<ActionResult<Use
       return { success: false, error: "Failed to fetch created preference" }
     }
 
-    revalidatePath("/dashboard/preferences")
-    revalidatePath("/dashboard")
+    revalidatePath("/dashboard", "layout")
 
     return { success: true, data: fullPreference }
   } catch (error) {
@@ -168,8 +139,7 @@ export async function removePreference(preferenceId: string): Promise<ActionResu
       await preferenceQueries.reorder(user.id, activePeriod.id, preferenceIds)
     }
 
-    revalidatePath("/dashboard/preferences")
-    revalidatePath("/dashboard")
+    revalidatePath("/dashboard", "layout")
 
     return { success: true, data: undefined }
   } catch (error) {
@@ -197,8 +167,7 @@ export async function reorderPreferences(preferenceIds: string[]): Promise<Actio
 
     await preferenceQueries.reorder(user.id, activePeriod.id, preferenceIds)
 
-    revalidatePath("/dashboard/preferences")
-    revalidatePath("/dashboard")
+    revalidatePath("/dashboard", "layout")
 
     return { success: true, data: undefined }
   } catch (error) {

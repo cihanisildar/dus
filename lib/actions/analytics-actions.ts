@@ -59,15 +59,17 @@ export type AnalyticsData = {
 }
 
 /**
- * Calculate how many candidates have a higher score
+ * Batch-fetch all verification scores for a period to avoid N+1 queries.
+ * Returns a function that counts candidates at or above a given cutoff score.
  */
-async function getHigherScoredApplicants(periodId: string, cutoffScore: number): Promise<number> {
-  const result = await db
-    .select({ count: sql<number>`count(*)::int` })
+async function buildApplicantCounter(periodId: string): Promise<(cutoffScore: number) => number> {
+  const allScores = await db
+    .select({ score: osymVerifications.dusScore })
     .from(osymVerifications)
-    .where(sql`${osymVerifications.periodId} = ${periodId} AND ${osymVerifications.dusScore} >= ${cutoffScore * 100}`)
+    .where(sql`${osymVerifications.periodId} = ${periodId}`)
 
-  return result[0]?.count || 0
+  return (cutoffScore: number) =>
+    allScores.filter(s => s.score >= cutoffScore * 100).length
 }
 
 /**
@@ -152,32 +154,29 @@ export async function getAnalyticsData(): Promise<ActionResult<AnalyticsData>> {
     // Get user's preferences with program details
     const preferences = await preferenceQueries.getByUserAndPeriod(user.id, activePeriod.id)
 
-    // Calculate preference analytics
-    const preferenceAnalytics: PreferenceAnalytic[] = await Promise.all(
-      preferences.map(async (pref) => {
-        const estimatedCutoff = pref.program.estimatedCutoff / 100
-        const scoreGap = userScore - estimatedCutoff
-        const higherScoredApplicants = await getHigherScoredApplicants(
-          activePeriod.id,
-          estimatedCutoff
-        )
+    // Build a single-query applicant counter to avoid N+1 queries
+    const getHigherScoredApplicants = await buildApplicantCounter(activePeriod.id)
 
-        return {
-          rank: pref.rank,
-          program: `${pref.program.university} - ${pref.program.specialty}`,
-          city: pref.program.city,
-          university: pref.program.university,
-          specialty: pref.program.specialty,
-          probability: pref.placementProbability || 0,
-          yourScore: userScore,
-          estimatedCutoff,
-          scoreGap: Math.round(scoreGap * 10) / 10,
-          competitorCount: pref.program.applicants,
-          spotsAvailable: pref.program.spots,
-          higherScoredApplicants,
-        }
-      })
-    )
+    // Calculate preference analytics (no additional DB queries per preference)
+    const preferenceAnalytics: PreferenceAnalytic[] = preferences.map((pref) => {
+      const estimatedCutoff = pref.program.estimatedCutoff / 100
+      const scoreGap = userScore - estimatedCutoff
+
+      return {
+        rank: pref.rank,
+        program: `${pref.program.university} - ${pref.program.specialty}`,
+        city: pref.program.city,
+        university: pref.program.university,
+        specialty: pref.program.specialty,
+        probability: pref.placementProbability || 0,
+        yourScore: userScore,
+        estimatedCutoff,
+        scoreGap: Math.round(scoreGap * 10) / 10,
+        competitorCount: pref.program.applicants,
+        spotsAvailable: pref.program.spots,
+        higherScoredApplicants: getHigherScoredApplicants(estimatedCutoff),
+      }
+    })
 
     // Get score distribution
     const scoreDistribution = await getScoreDistribution(activePeriod.id)

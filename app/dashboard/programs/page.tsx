@@ -1,9 +1,5 @@
-import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
 import { Search } from "lucide-react";
-import { db } from "@/lib/db";
-import { users } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { requireActiveUser } from "@/lib/actions/auth";
 import { programQueries } from "@/lib/db/queries/programs";
 import { periodQueries } from "@/lib/db/queries/periods";
 import { verificationQueries } from "@/lib/db/queries/verifications";
@@ -11,28 +7,7 @@ import { preferenceQueries } from "@/lib/db/queries/preferences";
 import { ProgramsClient } from "@/components/programs/programs-client";
 
 export default async function ProgramsPage() {
-    const supabase = await createClient();
-    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !authUser) {
-        redirect("/login");
-    }
-
-    // Fetch user data from custom users table
-    const user = await db.query.users.findFirst({
-        where: eq(users.id, authUser.id)
-    });
-
-    if (!user) {
-        redirect("/login");
-    }
-
-    const accountStatus = user.accountStatus;
-
-    // Only active users can access this page
-    if (accountStatus !== "active") {
-        redirect("/dashboard");
-    }
+    const user = await requireActiveUser();
 
     // Get active period
     const activePeriod = await periodQueries.getActive();
@@ -48,7 +23,7 @@ export default async function ProgramsPage() {
     }
 
     // Get user's DUS score
-    const verification = await verificationQueries.getByUserAndPeriod(authUser.id, activePeriod.id);
+    const verification = await verificationQueries.getByUserAndPeriod(user.id, activePeriod.id);
     const userScore = verification ? verification.dusScore / 100 : 0;
 
     // Fetch all programs for active period
@@ -59,7 +34,7 @@ export default async function ProgramsPage() {
     const specialties = await programQueries.getSpecialties(activePeriod.id);
 
     // Get user's current preferences to exclude them
-    const userPreferences = await preferenceQueries.getByUserAndPeriod(authUser.id, activePeriod.id);
+    const userPreferences = await preferenceQueries.getByUserAndPeriod(user.id, activePeriod.id);
     const userPreferenceIds = userPreferences.map(p => p.programId);
 
     return (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ArrowRight, Lock, Shield } from "lucide-react";
 
 interface PaymentFormProps {
@@ -8,10 +8,49 @@ interface PaymentFormProps {
     currency: string;
 }
 
+declare global {
+    interface Window {
+        Paddle?: {
+            Environment: { set: (env: string) => void };
+            Initialize: (config: { token: string; eventCallback?: (event: unknown) => void }) => void;
+            Checkout: {
+                open: (params: {
+                    items: Array<{ priceId: string; quantity: number }>;
+                    customData?: Record<string, string>;
+                    successUrl?: string;
+                }) => void;
+            };
+        };
+    }
+}
+
 export function PaymentForm({ price, currency }: PaymentFormProps) {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
     const [agreedToTerms, setAgreedToTerms] = useState(false);
+    const [paddleReady, setPaddleReady] = useState(false);
+
+    useEffect(() => {
+        const script = document.createElement("script");
+        script.src = "https://cdn.paddle.com/paddle/v2/paddle.js";
+        script.async = true;
+        script.onload = () => {
+            if (window.Paddle) {
+                const isSandbox = process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN?.startsWith("test_");
+                if (isSandbox) {
+                    window.Paddle.Environment.set("sandbox");
+                }
+                window.Paddle.Initialize({
+                    token: process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN || "",
+                });
+                setPaddleReady(true);
+            }
+        };
+        document.head.appendChild(script);
+        return () => {
+            document.head.removeChild(script);
+        };
+    }, []);
 
     const handlePayment = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -21,10 +60,16 @@ export function PaymentForm({ price, currency }: PaymentFormProps) {
             return;
         }
 
+        if (!paddleReady || !window.Paddle) {
+            setError("Ödeme sistemi yükleniyor, lütfen bekleyin");
+            return;
+        }
+
         setError("");
         setIsLoading(true);
 
         try {
+            // Create pending payment record and get paymentToken
             const response = await fetch("/api/payment/initiate", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -38,13 +83,16 @@ export function PaymentForm({ price, currency }: PaymentFormProps) {
                 return;
             }
 
-            // Redirect to iyzico payment page
-            if (data.paymentUrl) {
-                window.location.href = data.paymentUrl;
-            } else {
-                setError("Ödeme URL'si alınamadı");
-                setIsLoading(false);
-            }
+            const appUrl = window.location.origin;
+
+            // Open Paddle overlay
+            window.Paddle.Checkout.open({
+                items: [{ priceId: data.priceId, quantity: 1 }],
+                customData: { paymentToken: data.paymentToken },
+                successUrl: `${appUrl}/dashboard?payment=success`,
+            });
+
+            setIsLoading(false);
         } catch (err) {
             console.error("Payment error:", err);
             setError("Bir hata oluştu. Lütfen tekrar deneyin.");
@@ -60,19 +108,10 @@ export function PaymentForm({ price, currency }: PaymentFormProps) {
                     <Shield className="w-6 h-6 text-blue-600 flex-shrink-0 mt-0.5" />
                     <div>
                         <h3 className="font-semibold text-blue-900 mb-2">Güvenli Ödeme</h3>
-                        <p className="text-sm text-blue-800 mb-3">
-                            Ödeme yap butonuna tıkladığınızda, güvenli iyzico ödeme sayfasına yönlendirileceksiniz.
+                        <p className="text-sm text-blue-800">
+                            Ödeme yap butonuna tıkladığınızda, güvenli Paddle ödeme penceresi açılacaktır.
                             Kart bilgilerinizi orada güvenle girebilirsiniz.
                         </p>
-                        <div className="bg-white rounded-lg p-3 border border-blue-200">
-                            <p className="text-xs font-semibold text-gray-700 mb-2">Test Kartı (Sandbox):</p>
-                            <div className="space-y-1 text-xs text-gray-600">
-                                <p><span className="font-medium">Kart:</span> 5528 7900 0000 0003</p>
-                                <p><span className="font-medium">Son Kullanma:</span> 12/30</p>
-                                <p><span className="font-medium">CVV:</span> 123</p>
-                                <p><span className="font-medium">İsim:</span> Test User</p>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -88,7 +127,7 @@ export function PaymentForm({ price, currency }: PaymentFormProps) {
                 />
                 <label htmlFor="terms" className="text-sm text-gray-700">
                     <span className="underline cursor-pointer hover:text-blue-600">Kullanım Koşulları</span> ve{" "}
-                    <span className="underline cursor-pointer hover:text-blue-600">Gizlilik Politikası</span>'nı
+                    <span className="underline cursor-pointer hover:text-blue-600">Gizlilik Politikası</span>&apos;nı
                     okudum ve kabul ediyorum
                 </label>
             </div>
@@ -103,7 +142,7 @@ export function PaymentForm({ price, currency }: PaymentFormProps) {
             {/* Submit Button */}
             <button
                 type="submit"
-                disabled={!agreedToTerms || isLoading}
+                disabled={!agreedToTerms || isLoading || !paddleReady}
                 className="w-full bg-blue-600 text-white py-4 rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 text-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
                 {isLoading ? (
@@ -112,8 +151,10 @@ export function PaymentForm({ price, currency }: PaymentFormProps) {
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
-                        Yönlendiriliyorsunuz...
+                        Yükleniyor...
                     </>
+                ) : !paddleReady ? (
+                    <>Ödeme sistemi hazırlanıyor...</>
                 ) : (
                     <>
                         {price.toFixed(2)} {currency} Ödeme Yap
@@ -130,7 +171,7 @@ export function PaymentForm({ price, currency }: PaymentFormProps) {
                 </div>
                 <div className="flex items-center gap-1">
                     <Shield className="w-4 h-4" />
-                    <span>iyzico ile güvence altında</span>
+                    <span>Paddle ile güvence altında</span>
                 </div>
             </div>
         </form>

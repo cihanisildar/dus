@@ -49,9 +49,10 @@ export default function PaymentPage() {
                 return;
             }
 
-            // Redirect to iyzico payment page
-            if (data.paymentUrl) {
-                window.location.href = data.paymentUrl;
+            // Handled by Paddle.js overlay on the main payment page
+            // This page redirects to /dashboard/payment which has the Paddle form
+            if (data.success) {
+                router.push('/dashboard/payment');
             }
         } catch (err) {
             setError("Bir hata oluştu. Lütfen tekrar deneyin.");
@@ -188,7 +189,7 @@ export default function PaymentPage() {
                     </Button>
 
                     <p className="text-xs text-center text-muted-foreground">
-                        Güvenli ödeme için iyzico altyapısı kullanılmaktadır
+                        Güvenli ödeme için Paddle altyapısı kullanılmaktadır
                     </p>
                 </div>
             </div>

@@ -84,6 +84,11 @@ export async function completePayment(data: {
       throw new Error('Payment not found')
     }
 
+    // Idempotency guard: only process pending payments
+    if (payment.status !== 'pending') {
+      return payment
+    }
+
     // 2. Update payment status
     const [updatedPayment] = await tx.update(payments)
       .set({

@@ -2,11 +2,13 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function updateSession(request: NextRequest) {
-  // Performance optimization: Skip auth check for public routes
   const pathname = request.nextUrl.pathname;
+  // Explicit public API routes (callbacks that must be accessible without auth)
+  const isPublicApiRoute = pathname === '/api/auth/callback' ||
+    pathname === '/api/payment/callback';
   const isPublicRoute = pathname === '/' ||
     pathname.startsWith('/_next') ||
-    pathname.startsWith('/api/');
+    isPublicApiRoute;
 
   let supabaseResponse = NextResponse.next({
     request,

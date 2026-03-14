@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { db } from "@/lib/db";
-import { users } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { userQueries } from "@/lib/db/queries/users";
 
 export async function POST(req: NextRequest) {
     try {
@@ -43,14 +41,21 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // Check if user already exists in our custom users table
-        const existingUser = await db.query.users.findFirst({
-            where: eq(users.email, email),
-        });
-
+        // Check if email already exists
+        const existingUser = await userQueries.getByEmail(email);
         if (existingUser) {
             return NextResponse.json(
                 { error: "Bu e-posta adresi zaten kullanılıyor" },
+                { status: 409 }
+            );
+        }
+
+        // Check if phone already exists
+        const normalizedPhone = phone.replace(/\s/g, "");
+        const existingPhone = await userQueries.getByPhone(normalizedPhone);
+        if (existingPhone) {
+            return NextResponse.json(
+                { error: "Bu telefon numarası zaten kayıtlı" },
                 { status: 409 }
             );
         }
@@ -85,16 +90,13 @@ export async function POST(req: NextRequest) {
 
         // Create user in our custom users table
         // Note: passwordHash is empty because Supabase Auth handles authentication
-        const [newUser] = await db.insert(users).values({
-            id: authData.user.id, // Use Supabase Auth user ID
+        const newUser = await userQueries.create({
+            id: authData.user.id,
             name,
             email,
-            phone,
-            passwordHash: "", // Supabase Auth handles password
-            accountStatus: "registered",
-            verifiedPeriods: [],
-            paidPeriods: [],
-        }).returning();
+            phone: normalizedPhone,
+            passwordHash: "",
+        });
 
         const userId = newUser.id;
 

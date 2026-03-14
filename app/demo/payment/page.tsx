@@ -205,7 +205,7 @@ export default function DemoPaymentPage() {
                                                         <CreditCard className="w-4 h-4 text-gray-500" />
                                                         <p className="text-xs font-medium text-gray-500">Ödeme Yöntemi</p>
                                                     </div>
-                                                    <p className="text-sm font-semibold text-gray-900">iyzico</p>
+                                                    <p className="text-sm font-semibold text-gray-900">Paddle</p>
                                                     <p className="text-xs text-gray-500 mt-1">Güvenli Ödeme</p>
                                                 </div>
                                             </div>

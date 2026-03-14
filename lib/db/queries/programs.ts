@@ -1,6 +1,6 @@
 import { db } from '../index'
-import { programs, type Program, type NewProgram } from '../schema'
-import { eq, and, desc, sql } from 'drizzle-orm'
+import { programs, programCutoffHistory, type Program, type NewProgram, type ProgramCutoffHistory } from '../schema'
+import { eq, and, desc, sql, asc } from 'drizzle-orm'
 
 export const programQueries = {
   // Get all programs for a period
@@ -96,5 +96,13 @@ export const programQueries = {
   // Bulk create programs
   async bulkCreate(data: Array<Omit<NewProgram, 'id' | 'createdAt' | 'updatedAt'>>): Promise<Program[]> {
     return await db.insert(programs).values(data).returning()
+  },
+
+  // Get cutoff history for a program
+  async getCutoffHistory(programId: string): Promise<ProgramCutoffHistory[]> {
+    return await db.query.programCutoffHistory.findMany({
+      where: eq(programCutoffHistory.programId, programId),
+      orderBy: [asc(programCutoffHistory.year)],
+    })
   },
 }

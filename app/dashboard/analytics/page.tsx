@@ -1,35 +1,10 @@
-import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
 import { BarChart3 } from "lucide-react";
-import { db } from "@/lib/db";
-import { users } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { requireActiveUser } from "@/lib/actions/auth";
 import { getAnalyticsData } from "@/lib/actions/analytics-actions";
 import { AnalyticsClient } from "@/components/analytics/analytics-client";
 
 export default async function AnalyticsPage() {
-    const supabase = await createClient();
-    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !authUser) {
-        redirect("/login");
-    }
-
-    // Fetch user data from custom users table
-    const user = await db.query.users.findFirst({
-        where: eq(users.id, authUser.id)
-    });
-
-    if (!user) {
-        redirect("/login");
-    }
-
-    const accountStatus = user.accountStatus;
-
-    // Only active users can access this page
-    if (accountStatus !== "active") {
-        redirect("/dashboard");
-    }
+    const user = await requireActiveUser();
 
     // Fetch analytics data
     const analyticsResult = await getAnalyticsData();

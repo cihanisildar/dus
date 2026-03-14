@@ -10,6 +10,13 @@ export const userQueries = {
     })
   },
 
+  // Get user by phone
+  async getByPhone(phone: string): Promise<User | undefined> {
+    return await db.query.users.findFirst({
+      where: eq(users.phone, phone),
+    })
+  },
+
   // Get user by ID
   async getById(id: string): Promise<User | undefined> {
     return await db.query.users.findFirst({

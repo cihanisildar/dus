@@ -1,22 +1,13 @@
-import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { db } from "@/lib/db";
-import { users } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { getCurrentAuthUser } from "@/lib/actions/auth";
+import { userQueries } from "@/lib/db/queries/users";
 import { User, Mail, Shield } from "lucide-react";
 
 export default async function ProfilePage() {
-  const supabase = await createClient();
-  const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
-
-  if (authError || !authUser) {
-    redirect("/login");
-  }
+  const authUser = await getCurrentAuthUser();
 
   // Fetch user data from custom users table
-  const user = await db.query.users.findFirst({
-    where: eq(users.id, authUser.id)
-  });
+  const user = await userQueries.getById(authUser.id);
 
   if (!user) {
     redirect("/login");

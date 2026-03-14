@@ -1,4 +1,3 @@
-import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import {
     Settings as SettingsIcon,
@@ -9,24 +8,16 @@ import {
     CheckCircle2,
     Clock
 } from "lucide-react";
-import { db } from "@/lib/db";
-import { users } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { getCurrentAuthUser } from "@/lib/actions/auth";
+import { userQueries } from "@/lib/db/queries/users";
 import { periodQueries } from "@/lib/db/queries/periods";
 import ProfileForm from "./profile-form";
 
 export default async function SettingsPage() {
-    const supabase = await createClient();
-    const { data: { user: authUser } } = await supabase.auth.getUser();
-
-    if (!authUser) {
-        redirect("/login");
-    }
+    const authUser = await getCurrentAuthUser();
 
     // Fetch user data from database
-    const dbUser = await db.query.users.findFirst({
-        where: eq(users.id, authUser.id),
-    });
+    const dbUser = await userQueries.getById(authUser.id);
 
     if (!dbUser) {
         redirect("/login");

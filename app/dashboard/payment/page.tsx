@@ -1,8 +1,8 @@
-import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { db } from "@/lib/db";
-import { users, payments as paymentsTable } from "@/lib/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { getCurrentAuthUser } from "@/lib/actions/auth";
+import { userQueries } from "@/lib/db/queries/users";
+import { paymentQueries } from "@/lib/db/queries/payments";
+import { periodQueries } from "@/lib/db/queries/periods";
 import {
     CreditCard,
     CheckCircle2,
@@ -47,17 +47,10 @@ function PremiumFeaturesCard() {
 export const dynamic = 'force-dynamic';
 
 async function Payment() {
-    const supabase = await createClient();
-    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !authUser) {
-        redirect("/login");
-    }
+    const authUser = await getCurrentAuthUser();
 
     // Fetch user data from custom users table
-    const user = await db.query.users.findFirst({
-        where: eq(users.id, authUser.id)
-    });
+    const user = await userQueries.getById(authUser.id);
 
     if (!user) {
         redirect("/login");
@@ -69,10 +62,7 @@ async function Payment() {
     // If already active, show payment details
     if (accountStatus === "active") {
         // Fetch user's payments
-        const payments = await db.query.payments.findMany({
-            where: eq(paymentsTable.userId, user.id),
-            orderBy: [desc(paymentsTable.createdAt)]
-        });
+        const payments = await paymentQueries.getByUser(user.id);
         const completedPayments = payments.filter(p => p.status === "completed");
         const latestPayment = completedPayments[0];
 
@@ -82,9 +72,7 @@ async function Payment() {
         // Fetch current period details
         let periodDetails = null;
         if (currentPeriodId) {
-            periodDetails = await db.query.examPeriods.findFirst({
-                where: eq(users.id, currentPeriodId)
-            });
+            periodDetails = await periodQueries.getById(currentPeriodId);
         }
 
         // Calculate days until exam
@@ -181,7 +169,7 @@ async function Payment() {
                                                         </div>
                                                     </div>
                                                     <span className="px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-xs font-semibold text-white">
-                                                        #{latestPayment.conversationId.slice(-8)}
+                                                        #{latestPayment.transactionId.slice(-8)}
                                                     </span>
                                                 </div>
                                             </div>
@@ -236,7 +224,7 @@ async function Payment() {
                                                             <CreditCard className="w-4 h-4 text-gray-500" />
                                                             <p className="text-xs font-medium text-gray-500">Ödeme Yöntemi</p>
                                                         </div>
-                                                        <p className="text-sm font-semibold text-gray-900">iyzico</p>
+                                                        <p className="text-sm font-semibold text-gray-900">{latestPayment.provider}</p>
                                                         <p className="text-xs text-gray-500 mt-1">Güvenli Ödeme</p>
                                                     </div>
                                                 </div>
@@ -247,12 +235,6 @@ async function Payment() {
                                                         <span className="text-sm text-gray-600">İşlem Numarası</span>
                                                         <span className="font-mono text-sm font-medium text-gray-900 bg-gray-100 px-3 py-1 rounded">
                                                             {latestPayment.transactionId}
-                                                        </span>
-                                                    </div>
-                                                    <div className="flex items-center justify-between">
-                                                        <span className="text-sm text-gray-600">Konuşma ID</span>
-                                                        <span className="font-mono text-sm font-medium text-gray-900 bg-gray-100 px-3 py-1 rounded">
-                                                            {latestPayment.conversationId}
                                                         </span>
                                                     </div>
                                                     <div className="flex items-center justify-between">
@@ -574,7 +556,7 @@ async function Payment() {
                                 <span className="font-medium text-green-900">Güvenli Ödeme</span>
                             </div>
                             <p className="text-xs text-green-800">
-                                Ödemeniz iyzico altyapısı ile güvence altındadır. Kart bilgileriniz saklanmaz.
+                                Ödemeniz Paddle altyapısı ile güvence altındadır. Kart bilgileriniz saklanmaz.
                             </p>
                         </div>
                     </div>
